@@ -1,0 +1,23 @@
+# Build outputs
+bin/
+obj/
+publish/
+
+# Local Cities: Skylines II / Paradox cache output
+.cache/
+*.log
+*.dmp
+*.mdmp
+
+# User/local editor files
+.vs/
+.vscode/
+*.user
+*.suo
+*.tmp
+Thumbs.db
+Desktop.ini
+
+# Packages/restores
+packages/
+*.nupkg

@@ -1,0 +1,9 @@
+{
+  "id": "BetaTestDrivingMod",
+  "displayName": "Beta Test Driving Mod",
+  "author": "stoot",
+  "version": "0.3.13-crashguard-public",
+  "description": "Crashguard update for direct-drive live-vehicle control with safer chase, camera, and lane cleanup paths.",
+  "isCodeMod": true,
+  "dependencies": []
+}

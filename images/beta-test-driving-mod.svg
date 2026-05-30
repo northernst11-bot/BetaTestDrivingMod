@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M42 68h44c5 0 9 4 9 9v15H33V77c0-5 4-9 9-9z" fill="#fff"/>
+    <path d="M43 78h42v11H43z" fill="#102033"/>
+    <circle cx="48" cy="99" r="5" fill="#102033"/>
+    <circle cx="80" cy="99" r="5" fill="#102033"/>
+    <path d="M37 45h54c6 0 10 5 10 11v24H27V56c0-6 4-11 10-11z" fill="#fff"/>
+    <path d="M39 55h50v17H39z" fill="#102033"/>
+    <circle cx="44" cy="81" r="4" fill="#102033"/>
+    <circle cx="84" cy="81" r="4" fill="#102033"/>
+    <path d="M13 74h34c5 0 9 4 9 9v18H4V83c0-5 4-9 9-9z" fill="#ffc400"/>
+    <path d="M15 83h30v10H15z" fill="#102033"/>
+    <path d="M17 66h26l4 8H13l4-8z" fill="#ffc400"/>
+    <path d="M21 68h18v5H21z" fill="#102033"/>
+    <path d="M17 61h26v9H17z" fill="#ffc400"/>
+    <text x="21" y="68" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#102033">TAXI</text>
+    <path d="M78 72h36c5 0 9 4 9 9v20H69V81c0-5 4-9 9-9z" fill="#fff"/>
+    <path d="M81 81h27v12H81z" fill="#102033"/>
+    <path d="M111 87h5v12h-5z" fill="#102033"/>
+    <path d="M93 84h9v24h-9z" fill="#ff2d2d"/>
+    <path d="M86 91h23v9H86z" fill="#ff2d2d"/>
+    <path d="M81 67h30v7H81z" fill="#ff2d2d"/>
+    <path d="M91 67h10v7H91z" fill="#fff"/>
+    <path d="M49 96h30v8H49z" fill="#2aa8ff"/>
+    <path d="M64 96h15v8H64z" fill="#ff2d2d"/>
+    <path d="M57 96h8v8h-8z" fill="#fff"/>
+  </g>
+</svg>

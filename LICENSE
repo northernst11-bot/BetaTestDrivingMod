@@ -1,0 +1,25 @@
+Beta Test Driving Mod Source-Available Transparency License
+
+Copyright (c) 2026 stoot. All rights reserved.
+
+This repository is published for transparency, review, and security inspection only. It is not open source.
+
+You may:
+- View and inspect the source code through this repository.
+- Link to this repository.
+- Discuss the code, report issues, or suggest improvements.
+
+You may not, without prior written permission from the copyright holder:
+- Copy, clone, download, mirror, scrape, fork, reuse, modify, compile, redistribute, reupload, sell, sublicense, or publish this source code or any substantial portion of it.
+- Use this source code, assets, structure, file layout, algorithms, UI implementation, driving implementation, police chase implementation, camera implementation, or other distinctive implementation details in another mod, plugin, tool, or derivative project.
+- Repackage, rebuild, rename, or publish this project or a fork as a competing, replacement, test, beta, private, or public mod.
+- Use this source code to train, fine-tune, benchmark, or evaluate machine-learning systems or code-generation tools.
+- Remove, hide, or alter this license or copyright notice.
+
+No patent, trademark, or commercial rights are granted.
+
+The absence of an explicit restriction does not imply permission. Any permission not clearly granted above is reserved by the copyright holder.
+
+This software is provided as-is, without warranty of any kind. The author is not liable for any damages, data loss, game crashes, save issues, or other problems arising from viewing, testing, or using this project.
+
+For permission requests, contact the repository owner.

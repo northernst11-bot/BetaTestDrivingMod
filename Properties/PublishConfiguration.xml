@@ -1,0 +1,57 @@
+<Publish>
+  <ModId Value="145145" />
+	<DisplayName Value="Beta Test Driving Mod" />
+	<ShortDescription Value="Direct-drive live-vehicle control with unlocked tuning, attached chase camera, and optional test police chase." />
+	<LongDescription>
+# Beta Test Driving Mod
+
+Beta Test Driving Mod lets you possess and drive a real live vehicle already moving in Cities: Skylines II. This update keeps the tested Direct Drive system, the cleaner top-left COUI driving panel, safer crashguard paths around control/chase/camera cleanup, improved police chase retargeting for assigned units, the tested GTA-style attached chase camera, and unlocked manual tuning values.
+
+Feedback / bug reports: https://forum.paradoxplaza.com/forum/threads/beta-test-driving-mod-feedback-and-bug-reports.1925686/
+
+Police chase disclaimer: the chase feature is still in testing. It uses Cities: Skylines II police patrol/pathfinding systems, but dispatch may fail, arrive late, or behave weirdly depending on police coverage, nearby units, traffic, and the game's own patrol AI.
+
+## Features
+
+- Possess/release a real live vehicle with V
+- Arrow-key driving controls, recommended if WASD moves your camera or screen
+- WASD also works as a fallback
+- Top-left driving panel for speed, input status, possession, road assist toggles, and tuning sliders
+- Tuning fields apply typed numbers on Enter or when leaving the field
+- Manual tuning values are no longer capped by the old speed, steering, response, road attach, or camera ranges
+- UI-safe panel layout that avoids unsupported display styles in the Cities: Skylines II UI runtime
+- F8 also opens or closes the driving panel
+- F7 toggles the attached behind-car chase camera
+- Camera distance, height, and look-ahead tuning sliders in the panel
+- Optional police chase testing toggle, plus Start Chase/F9 while driving
+- Chase retarget refresh so assigned police units keep following the moving possessed car instead of the original chase point
+- Emergency/warning light effects are forced on assigned chase units while the chase is active
+- Crashguard safety around possession/control, path-freeze, chase camera restore, and experimental police chase dispatch
+- Lane-object cleanup on release so traffic is less likely to remember the possessed car at an old location
+- Frame-buffered keyboard input with latched quick taps
+- Direct physical vehicle movement after the game's normal car movement step
+- Vanilla physical path driving is frozen for the possessed car so AI movement does not fight player control
+- Road-height assist keeps the car attached to nearby road lanes with the tested no-hover behavior
+- Road intent assist queues AI left/right path intent from steering input without forcing the physical body to turn itself
+- Lane object presence sync so other traffic reacts to the possessed car's current lane position
+- Nearby road-lane search instead of expensive whole-city scanning
+- Brake-first reverse behavior: hold Down/S to stop, release and press again to reverse
+
+## Notes
+
+This is a beta test mod. It controls one possessed live road car and does not replace the whole traffic system. The older bus/train/watercraft experimental controls and expensive junction override are not active in this public direct-drive build.
+	</LongDescription>
+	<Thumbnail Value="Properties/Thumbnail.png" />
+	<Screenshot Value="Properties/1.png" />
+	<Tag Value="Code Mod" />
+	<ModVersion Value="0.3.13-crashguard-public" />
+	<GameVersion Value="1.5.*" />
+	<ChangeLog>
+0.3.13-crashguard-public update:
+- Publishes the tested crashguard build.
+- Adds safety guards around direct control, path-freeze, chase camera restore, and experimental police chase dispatch.
+- Cleans lane-object presence on release so traffic is less likely to remember the possessed car at an old location.
+- Keeps the same driving feel, UI, road attach, unlocked tuning, and attached chase camera behavior.
+	</ChangeLog>
+	<AccessLevel Value="Public" />
+</Publish>
