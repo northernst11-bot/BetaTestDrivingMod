@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.15-cache-refresh-public
+
+- Reuploads the same source-link build as a fresh Paradox package after a local download checksum failure was seen for the previous backend version.
+- Keeps the source transparency GitHub link and inspection-only source notice in the mod description.
+- Keeps the same tested crashguard build from `0.3.13-crashguard-public`.
+
 ## 0.3.14-source-link-public
 
 - Publishes the source transparency link in the Paradox mod description.

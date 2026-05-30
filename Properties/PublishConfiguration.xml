@@ -48,12 +48,12 @@ This is a beta test mod. It controls one possessed live road car and does not re
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<Screenshot Value="Properties/1.png" />
 	<Tag Value="Code Mod" />
-	<ModVersion Value="0.3.14-source-link-public" />
+	<ModVersion Value="0.3.15-cache-refresh-public" />
 	<GameVersion Value="1.5.*" />
 	<ChangeLog>
-0.3.14-source-link-public update:
-- Adds the source transparency GitHub link to the mod description.
-- Clarifies that the source is available for inspection only and is not open source.
+0.3.15-cache-refresh-public update:
+- Reuploads the same source-link build as a fresh Paradox package after a local download checksum failure was seen for the previous backend version.
+- Keeps the source transparency GitHub link and inspection-only source notice in the mod description.
 - Keeps the same tested crashguard build, driving feel, UI, road attach, unlocked tuning, and attached chase camera behavior.
 	</ChangeLog>
 	<AccessLevel Value="Public" />

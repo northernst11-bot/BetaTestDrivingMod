@@ -10,7 +10,7 @@ namespace BetaTestDrivingMod
     public sealed class Mod : IMod
     {
         public const string kModName = "BetaTestDrivingMod";
-        public const string kVersion = "0.3.14-source-link-public";
+        public const string kVersion = "0.3.15-cache-refresh-public";
 
         public static readonly ILog log = LogManager.GetLogger($"{kModName}.{nameof(Mod)}").SetShowsErrorsInUI(false);
 

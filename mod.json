@@ -2,8 +2,8 @@
   "id": "BetaTestDrivingMod",
   "displayName": "Beta Test Driving Mod",
   "author": "stoot",
-  "version": "0.3.14-source-link-public",
-  "description": "Source transparency link update for the tested crashguard direct-drive build.",
+  "version": "0.3.15-cache-refresh-public",
+  "description": "Cache-refresh republish of the tested source-link direct-drive build.",
   "isCodeMod": true,
   "dependencies": []
 }
