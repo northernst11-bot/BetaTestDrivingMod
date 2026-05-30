@@ -10,7 +10,7 @@ namespace BetaTestDrivingMod
     public sealed class Mod : IMod
     {
         public const string kModName = "BetaTestDrivingMod";
-        public const string kVersion = "0.3.15-cache-refresh-public";
+        public const string kVersion = "0.3.16-public-ui-safe";
 
         public static readonly ILog log = LogManager.GetLogger($"{kModName}.{nameof(Mod)}").SetShowsErrorsInUI(false);
 
@@ -22,6 +22,7 @@ namespace BetaTestDrivingMod
                 log.Info($"Current mod asset at {asset.path}");
 
             DirectDriveRuntime.EnsureHud();
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
             updateSystem.UpdateAt<DirectDriveUiSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<DirectDriveInputSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAfter<DirectDriveFreezeSystem, CarNavigationSystem>(SystemUpdatePhase.GameSimulation);
@@ -30,7 +31,7 @@ namespace BetaTestDrivingMod
             updateSystem.UpdateAfter<DirectDrivePoliceChaseSystem, DirectDriveControlSystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<DirectDrivePoliceChaseSystem, PoliceCarAISystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<DirectDriveCameraSystem, CameraUpdateSystem>(SystemUpdatePhase.PreCulling);
-            log.Info("Beta Test Driving Mod systems registered: direct physical vehicle control, frame-buffered input, road-height attach, AI road-turn intent, police chase retargeting, PreCulling chase camera, and COUI driving panel.");
+            log.Info("Beta Test Driving Mod systems registered: direct physical vehicle control, frame-buffered input, safe road attach defaults, PreCulling chase camera, and simplified public COUI driving panel.");
         }
 
         public void OnDispose()

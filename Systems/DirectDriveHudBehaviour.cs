@@ -65,10 +65,7 @@ namespace BetaTestDrivingMod
             }
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(8f);
-            DirectDriveRuntime.RoadIntentAssist = GUILayout.Toggle(DirectDriveRuntime.RoadIntentAssist, "Road intent assist queues AI left/right path");
-            DirectDriveRuntime.RoadHeightAssist = GUILayout.Toggle(DirectDriveRuntime.RoadHeightAssist, "Road height assist only");
-            DirectDriveRuntime.FreezeVanillaNavigation = GUILayout.Toggle(DirectDriveRuntime.FreezeVanillaNavigation, "Disable vanilla physical path driving");
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
 
             GUILayout.Space(8f);
             DirectDriveRuntime.TargetSpeedMph = Slider("Forward speed mph", DirectDriveRuntime.TargetSpeedMph, 8f, 95f, "0");

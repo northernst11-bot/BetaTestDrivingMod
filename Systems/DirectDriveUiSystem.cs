@@ -55,6 +55,7 @@ namespace BetaTestDrivingMod
         protected override void OnCreate()
         {
             base.OnCreate();
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
 
             AddBinding(m_PanelVisible = new ValueBinding<bool>(kGroup, "PanelVisible", DirectDriveRuntime.PanelVisible, null, null));
             AddBinding(m_IsDriving = new ValueBinding<bool>(kGroup, "IsDriving", DirectDriveRuntime.IsDriving, null, null));
@@ -150,31 +151,31 @@ namespace BetaTestDrivingMod
 
         private void SetRoadIntentAssist(bool value)
         {
-            DirectDriveRuntime.RoadIntentAssist = value;
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
             UpdateBindings();
         }
 
         private void SetRoadHeightAssist(bool value)
         {
-            DirectDriveRuntime.RoadHeightAssist = value;
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
             UpdateBindings();
         }
 
         private void SetFreezeVanillaNavigation(bool value)
         {
-            DirectDriveRuntime.FreezeVanillaNavigation = value;
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
             UpdateBindings();
         }
 
         private void SetChaseCameraEnabled(bool value)
         {
-            DirectDriveRuntime.ChaseCameraEnabled = value;
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
             UpdateBindings();
         }
 
         private void SetPoliceChaseEnabled(bool value)
         {
-            DirectDriveRuntime.PoliceChaseEnabled = value;
+            DirectDriveRuntime.ApplyPublicSafeDefaults();
             UpdateBindings();
         }
 

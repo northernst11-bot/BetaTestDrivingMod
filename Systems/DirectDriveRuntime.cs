@@ -110,9 +110,8 @@ namespace BetaTestDrivingMod
 
         internal static void RequestPoliceChaseTest()
         {
-            PoliceChaseEnabled = true;
-            s_PoliceChaseTestRequested = true;
-            SetPoliceChase(false, "Manual chase requested", 0);
+            ApplyPublicSafeDefaults();
+            SetPoliceChase(false, "Police chase disabled in public build", 0);
         }
 
         internal static bool ConsumeToggleRequest()
@@ -265,6 +264,17 @@ namespace BetaTestDrivingMod
             ChaseCameraHeight = 3.25f;
             ChaseCameraLookAhead = 12f;
             ChaseCameraStatus = "Chase camera ready";
+            PoliceChaseEnabled = false;
+            s_PoliceChaseTestRequested = false;
+            SetPoliceChase(false, "Police chase off", 0);
+        }
+
+        internal static void ApplyPublicSafeDefaults()
+        {
+            RoadIntentAssist = true;
+            RoadHeightAssist = true;
+            FreezeVanillaNavigation = true;
+            ChaseCameraEnabled = true;
             PoliceChaseEnabled = false;
             s_PoliceChaseTestRequested = false;
             SetPoliceChase(false, "Police chase off", 0);

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.16-public-ui-safe
+
+- Hides advanced road intent, road attach, AI body path, chase camera, and police chase toggles from the public driving panel.
+- Forces hidden advanced controls back to safe defaults so old changed values do not keep running in the background.
+- Keeps the top driving controls and the tuning tab available.
+
 ## 0.3.15-cache-refresh-public
 
 - Reuploads the same source-link build as a fresh Paradox package after a local download checksum failure was seen for the previous backend version.

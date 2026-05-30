@@ -20,16 +20,8 @@ const inputBrake = api.bindValue(group, "InputBrake", 0);
 const inputSteering = api.bindValue(group, "InputSteering", 0);
 const inputFresh = api.bindValue(group, "InputFresh", true);
 const inputAgeSeconds = api.bindValue(group, "InputAgeSeconds", 0);
-const roadIntentAssist = api.bindValue(group, "RoadIntentAssist", true);
-const roadHeightAssist = api.bindValue(group, "RoadHeightAssist", true);
-const freezeVanillaNavigation = api.bindValue(group, "FreezeVanillaNavigation", true);
 const chaseCameraEnabled = api.bindValue(group, "ChaseCameraEnabled", true);
 const chaseCameraStatus = api.bindValue(group, "ChaseCameraStatus", "Chase camera ready");
-const policeChaseEnabled = api.bindValue(group, "PoliceChaseEnabled", false);
-const policeChaseActive = api.bindValue(group, "PoliceChaseActive", false);
-const policeChaseStatus = api.bindValue(group, "PoliceChaseStatus", "Police chase armed");
-const policeChaseUnits = api.bindValue(group, "PoliceChaseUnits", 0);
-const redLightViolations = api.bindValue(group, "RedLightViolations", 0);
 const targetSpeedMph = api.bindValue(group, "TargetSpeedMph", 42);
 const reverseSpeedMph = api.bindValue(group, "ReverseSpeedMph", 9);
 const accelerationMps2 = api.bindValue(group, "AccelerationMps2", 19);
@@ -327,12 +319,6 @@ function DriveView() {
     const age = clampNumber(api.useValue(inputAgeSeconds), 0);
     const cameraEnabled = api.useValue(chaseCameraEnabled);
     const cameraStatus = api.useValue(chaseCameraStatus);
-    const chaseEnabled = api.useValue(policeChaseEnabled);
-    const chaseActive = api.useValue(policeChaseActive);
-    const chaseStatus = api.useValue(policeChaseStatus);
-    const chaseUnits = clampNumber(api.useValue(policeChaseUnits), 0);
-    const violations = clampNumber(api.useValue(redLightViolations), 0);
-
     return h("div", null,
         h("div", {
             style: {
@@ -368,9 +354,7 @@ function DriveView() {
             h(Pill, { label: fresh ? "input live" : `input ${age.toFixed(1)}s`, tone: fresh ? "green" : "red" }),
             driving ? h(Pill, { label: isBraking ? "braking" : "rolling", tone: isBraking ? "amber" : "blue" }) : null,
             reverse ? h(Pill, { label: "reverse armed", tone: "amber" }) : null,
-            driving && cameraEnabled ? h(Pill, { label: "chase camera", tone: "blue" }) : null,
-            chaseActive ? h(Pill, { label: "police chase", tone: "red" }) : null,
-            chaseEnabled && !chaseActive ? h(Pill, { label: "chase armed", tone: "amber" }) : null
+            driving && cameraEnabled ? h(Pill, { label: "chase camera", tone: "blue" }) : null
         ),
         cameraEnabled ? h("div", {
             style: {
@@ -380,14 +364,6 @@ function DriveView() {
                 lineHeight: "1.2"
             }
         }, cameraStatus || "Chase camera ready") : null,
-        chaseEnabled ? h("div", {
-            style: {
-                marginTop: "8rem",
-                opacity: chaseActive ? 0.94 : 0.7,
-                fontSize: "12rem",
-                lineHeight: "1.2"
-            }
-        }, `${chaseStatus || "Police chase armed"}${chaseActive ? ` (${Math.round(chaseUnits)} units)` : ""}${violations > 0 ? ` | red runs ${Math.round(violations)}` : ""}`) : null,
         h("div", { style: Object.assign({}, row, { marginTop: "12rem" }) },
             h(Meter, { label: "Throttle", value: throttle }),
             h(Meter, { label: "Brake", value: brake }),
@@ -397,15 +373,7 @@ function DriveView() {
             driving
                 ? commandButton("Release", () => trigger("Release"), Object.assign({ flex: 1 }, dangerButton))
                 : commandButton("Possess car", () => trigger("ToggleDriving"), Object.assign({ flex: 1 }, primaryButton)),
-            driving ? commandButton("Start Chase", () => trigger("StartPoliceChaseTest"), { minWidth: "108rem" }) : null,
             commandButton("Reset", () => trigger("ResetSettings"), { minWidth: "84rem" })
-        ),
-        h("div", { style: { marginTop: "12rem" } },
-            h(ToggleRow, { binding: roadIntentAssist, action: "SetRoadIntentAssist", label: "Road intent", hint: "AI turn choice from left/right input" }),
-            h(ToggleRow, { binding: roadHeightAssist, action: "SetRoadHeightAssist", label: "Road attach", hint: "Keeps the body on the lane height" }),
-            h(ToggleRow, { binding: freezeVanillaNavigation, action: "SetFreezeVanillaNavigation", label: "Freeze AI body path", hint: "Stops vanilla movement fighting player control" }),
-            h(ToggleRow, { binding: chaseCameraEnabled, action: "SetChaseCameraEnabled", label: "Chase camera", hint: "Attached behind-car camera" }),
-            h(ToggleRow, { binding: policeChaseEnabled, action: "SetPoliceChaseEnabled", label: "Police chase", hint: "Starts after running a red without stopping" })
         )
     );
 }
