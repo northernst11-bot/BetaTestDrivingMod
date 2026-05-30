@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.14-source-link-public
+
+- Publishes the source transparency link in the Paradox mod description.
+- Clarifies that the source is available for inspection only and is not open source.
+- Keeps the same tested crashguard build from `0.3.13-crashguard-public`.
+
 ## 0.3.13-crashguard-public
 
 - Publishes the tested crashguard build.

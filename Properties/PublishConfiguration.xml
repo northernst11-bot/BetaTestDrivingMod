@@ -9,6 +9,10 @@ Beta Test Driving Mod lets you possess and drive a real live vehicle already mov
 
 Feedback / bug reports: https://forum.paradoxplaza.com/forum/threads/beta-test-driving-mod-feedback-and-bug-reports.1925686/
 
+Source transparency: https://github.com/northernst11-bot/BetaTestDrivingMod
+
+The source is available for transparency and inspection only. It is not open source, and copying, rebuilding, reuploading, forking, or publishing derivative versions is not permitted without permission.
+
 Police chase disclaimer: the chase feature is still in testing. It uses Cities: Skylines II police patrol/pathfinding systems, but dispatch may fail, arrive late, or behave weirdly depending on police coverage, nearby units, traffic, and the game's own patrol AI.
 
 ## Features
@@ -44,14 +48,13 @@ This is a beta test mod. It controls one possessed live road car and does not re
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<Screenshot Value="Properties/1.png" />
 	<Tag Value="Code Mod" />
-	<ModVersion Value="0.3.13-crashguard-public" />
+	<ModVersion Value="0.3.14-source-link-public" />
 	<GameVersion Value="1.5.*" />
 	<ChangeLog>
-0.3.13-crashguard-public update:
-- Publishes the tested crashguard build.
-- Adds safety guards around direct control, path-freeze, chase camera restore, and experimental police chase dispatch.
-- Cleans lane-object presence on release so traffic is less likely to remember the possessed car at an old location.
-- Keeps the same driving feel, UI, road attach, unlocked tuning, and attached chase camera behavior.
+0.3.14-source-link-public update:
+- Adds the source transparency GitHub link to the mod description.
+- Clarifies that the source is available for inspection only and is not open source.
+- Keeps the same tested crashguard build, driving feel, UI, road attach, unlocked tuning, and attached chase camera behavior.
 	</ChangeLog>
 	<AccessLevel Value="Public" />
 </Publish>
