@@ -3,7 +3,7 @@
   "displayName": "Beta Test Driving Mod",
   "author": "stoot",
   "version": "0.3.16-public-ui-safe",
-  "description": "Safer public UI hides advanced controls while keeping direct drive tuning available.",
+  "description": "Direct-drive live-vehicle control with MIT-licensed source for forks, variants, and improvements.",
   "isCodeMod": true,
   "dependencies": []
 }

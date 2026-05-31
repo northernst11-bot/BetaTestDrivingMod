@@ -1,7 +1,7 @@
 <Publish>
   <ModId Value="145145" />
 	<DisplayName Value="Beta Test Driving Mod" />
-	<ShortDescription Value="Direct-drive live-vehicle control with a safer public UI, unlocked tuning, and attached chase camera." />
+	<ShortDescription Value="Direct-drive live-vehicle control with MIT-licensed source for forks, variants, and improvements." />
 	<LongDescription>
 # Beta Test Driving Mod
 
@@ -9,9 +9,11 @@ Beta Test Driving Mod lets you possess and drive a real live vehicle already mov
 
 Feedback / bug reports: https://forum.paradoxplaza.com/forum/threads/beta-test-driving-mod-feedback-and-bug-reports.1925686/
 
-Source transparency: https://github.com/northernst11-bot/BetaTestDrivingMod
+Source / MIT license: https://github.com/northernst11-bot/BetaTestDrivingMod
 
-The source is available for transparency and inspection only. It is not open source, and copying, rebuilding, reuploading, forking, or publishing derivative versions is not permitted without permission.
+The source code and original project assets are open source under the MIT License. Everyone may use, copy, modify, fork, build, publish, distribute, sublicense, sell, and make improved variants or replacement versions from this mod, as long as the MIT copyright and license notice stay with substantial copies.
+
+The MIT license does not grant rights to Cities: Skylines II, Paradox or Colossal Order trademarks, game assets, or third-party content not owned by this project.
 
 Police chase note: the experimental chase controls are hidden and disabled in this public build while they keep being tested locally.
 

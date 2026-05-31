@@ -2,15 +2,15 @@
 
 `0.3.16-public-ui-safe`
 
-Source transparency: https://github.com/northernst11-bot/BetaTestDrivingMod
+Source / MIT license: https://github.com/northernst11-bot/BetaTestDrivingMod
 
-## Source License
+## Open Source License
 
-This repository is source-available for transparency only. It is not open source.
+This project is open source under the MIT License.
 
-You may view and inspect the code, but you may not clone, download, copy, reuse, modify, compile, redistribute, reupload, sell, fork, or publish this code or a derivative mod without written permission. See [LICENSE](LICENSE).
+Everyone may use, copy, modify, merge, publish, distribute, sublicense, sell, fork, and build on this mod's source code and original project assets. That includes making variants, replacement versions, and better versions of the mod. See [LICENSE](LICENSE).
 
-This source release intentionally does not include compiled binaries, build output, local cache files, publish packages, or support for republishing. It is provided so players can inspect what the mod does, not so the mod can be copied or rebuilt.
+Please keep the MIT copyright and license notice with substantial copies. The MIT license does not grant rights to Cities: Skylines II, Paradox or Colossal Order trademarks, game assets, or third-party content not owned by this project.
 
 This public build keeps the tested Direct Drive control system, keeps crashguard safety around the riskiest control/camera paths, keeps the tested GTA-style attached chase camera, removes the hard tuning value limits from the panel and C# setting setters, and hides advanced assist/chase controls from the public UI.
 

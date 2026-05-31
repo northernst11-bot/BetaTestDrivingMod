@@ -1,7 +1,9 @@
-# Transparency Notice
+# Open Source Notice
 
-This repository is public so players can inspect the Beta Test Driving Mod source code for transparency.
+Beta Test Driving Mod is open source under the [MIT License](LICENSE).
 
-It is not permission to copy, rebuild, reupload, fork, rename, or publish the mod or any derivative work. All rights are reserved by the author. See [LICENSE](LICENSE).
+Everyone may use, copy, modify, fork, build, publish, redistribute, sublicense, sell, and make improved variants or replacement versions from this mod's source code and original project assets.
 
-The official published mod is the Paradox Mods listing for Beta Test Driving Mod. Any copy, fork, reupload, or replacement mod using this code without written permission is unauthorized.
+Please keep the MIT copyright and license notice with substantial copies of the project.
+
+This license does not grant rights to Cities: Skylines II, Paradox or Colossal Order trademarks, game assets, or third-party content not owned by this project.

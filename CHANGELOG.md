@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Re-licenses the repository under the MIT License so everyone can fork, modify, build, publish, and make improved variants of the mod.
+- Updates the GitHub README, notice, local mod metadata, and Paradox publish description to remove the old inspection-only restriction.
+
 ## 0.3.16-public-ui-safe
 
 - Hides advanced road intent, road attach, AI body path, chase camera, and police chase toggles from the public driving panel.
@@ -9,13 +14,13 @@
 ## 0.3.15-cache-refresh-public
 
 - Reuploads the same source-link build as a fresh Paradox package after a local download checksum failure was seen for the previous backend version.
-- Keeps the source transparency GitHub link and inspection-only source notice in the mod description.
+- Keeps the source transparency GitHub link and source notice used by that release in the mod description.
 - Keeps the same tested crashguard build from `0.3.13-crashguard-public`.
 
 ## 0.3.14-source-link-public
 
 - Publishes the source transparency link in the Paradox mod description.
-- Clarifies that the source is available for inspection only and is not open source.
+- Adds the source availability note used by that release.
 - Keeps the same tested crashguard build from `0.3.13-crashguard-public`.
 
 ## 0.3.13-crashguard-public
