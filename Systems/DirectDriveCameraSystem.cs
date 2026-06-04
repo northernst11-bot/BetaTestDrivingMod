@@ -18,6 +18,8 @@ namespace BetaTestDrivingMod
         private Vector3 m_Position;
         private Vector3 m_LookPoint;
         private bool m_Active;
+        private bool m_ControllerCrashguardLogged;
+        private bool m_FirstPoseLogged;
 
         protected override void OnCreate()
         {
@@ -49,9 +51,7 @@ namespace BetaTestDrivingMod
                 if (!m_Active || m_Target != target)
                     ActivateCamera(camera, target);
 
-                if (m_CameraUpdateSystem != null && m_CameraUpdateSystem.activeCameraController != null)
-                    m_CameraUpdateSystem.activeCameraController = null;
-
+                KeepSafeCameraController(target);
                 ApplyChaseCamera(camera);
             }
             catch (Exception ex)
@@ -86,14 +86,35 @@ namespace BetaTestDrivingMod
                     m_CameraUpdateSystem.orbitCameraController.TryMatchPosition(m_PreviousController);
             }
 
-            if (m_CameraUpdateSystem != null)
-                m_CameraUpdateSystem.activeCameraController = null;
+            KeepSafeCameraController(target);
 
             m_Position = camera.transform.position;
             m_LookPoint = DirectDriveRuntime.PosePosition + DirectDriveRuntime.PoseRotation * Vector3.forward * 8f;
             m_Active = true;
             DirectDriveRuntime.SetChaseCameraStatus("Chase camera attached after game camera");
             Mod.log.Info($"Direct Drive chase camera attached to {target} after CameraUpdateSystem.");
+        }
+
+        private void KeepSafeCameraController(Entity target)
+        {
+            if (m_CameraUpdateSystem == null)
+                return;
+
+            if (m_CameraUpdateSystem.orbitCameraController != null)
+            {
+                m_CameraUpdateSystem.orbitCameraController.followedEntity = target;
+                m_CameraUpdateSystem.activeCameraController = m_CameraUpdateSystem.orbitCameraController;
+            }
+            else if (m_CameraUpdateSystem.activeCameraController == null && m_CameraUpdateSystem.gamePlayController != null)
+            {
+                m_CameraUpdateSystem.activeCameraController = m_CameraUpdateSystem.gamePlayController;
+            }
+
+            if (!m_ControllerCrashguardLogged && m_CameraUpdateSystem.activeCameraController != null)
+            {
+                Mod.log.Info("Direct Drive chase camera keeping a live game camera controller while applying the custom chase pose.");
+                m_ControllerCrashguardLogged = true;
+            }
         }
 
         private void ApplyChaseCamera(Camera camera)
@@ -125,8 +146,24 @@ namespace BetaTestDrivingMod
             if (viewDirection.sqrMagnitude < 0.001f)
                 viewDirection = forward;
 
+            if (!IsFinite(m_Position) || !IsFinite(viewDirection))
+                return;
+
             camera.transform.SetPositionAndRotation(m_Position, Quaternion.LookRotation(viewDirection.normalized, Vector3.up));
+            if (!m_FirstPoseLogged)
+            {
+                Mod.log.Info("Direct Drive chase camera first custom pose applied.");
+                m_FirstPoseLogged = true;
+            }
+
             DirectDriveRuntime.SetChaseCameraStatus("Chase camera attached after game camera");
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return !(float.IsNaN(value.x) || float.IsInfinity(value.x) ||
+                     float.IsNaN(value.y) || float.IsInfinity(value.y) ||
+                     float.IsNaN(value.z) || float.IsInfinity(value.z));
         }
 
         private void RestoreCamera(string status)

@@ -29,6 +29,14 @@ namespace BetaTestDrivingMod
         private const float kMaxVerticalCorrectionPerTick = 0.08f;
         private const float kNearbyLaneSearchRadius = 26f;
         private const float kMaxRoadAttachDistanceSq = 400f;
+        private const float kTrafficPresenceMaxRoadAttachDistanceSq = 9f;
+        private const float kTrafficPresenceMinForwardDot = 0.25f;
+        private const float kTrafficPresenceLookAheadMeters = 5.5f;
+        private const float kTrafficPresenceMinCurveSpan = 0.0025f;
+        private const float kTrafficPresenceMaxCurveSpan = 0.045f;
+        private const uint kTurnIntentCacheFrames = 15U;
+        private const int kTrafficPresenceStableFrames = 6;
+        private const uint kTrafficPresenceMinSyncFrames = 8U;
 
         private SelectedInfoUISystem m_SelectedInfo;
         private ToolSystem m_ToolSystem;
@@ -49,6 +57,22 @@ namespace BetaTestDrivingMod
         private bool m_ReverseActive;
         private int m_LogCooldown;
         private int m_TurnLogCooldown;
+        private bool m_RoadLaneWriteCrashguardLogged;
+        private bool m_TrafficPresenceRestoredLogged;
+        private Entity m_TrafficPresenceCandidateLane = Entity.Null;
+        private int m_TrafficPresenceCandidateFrames;
+        private uint m_LastTrafficPresenceSyncFrame;
+        private Entity m_TurnIntentCacheLane = Entity.Null;
+        private Entity m_TurnIntentCacheConnection = Entity.Null;
+        private Entity m_TurnIntentCacheExit = Entity.Null;
+        private int m_TurnIntentCacheSide;
+        private uint m_TurnIntentCacheFrame;
+        private CarLaneFlags m_TurnIntentCacheTurnFlag;
+        private CarLaneFlags m_TurnIntentCacheConnectionFlags;
+        private CarLaneFlags m_TurnIntentCacheExitFlags;
+        private float2 m_TurnIntentCacheConnectionCurvePosition;
+        private float2 m_TurnIntentCacheExitCurvePosition;
+        private string m_TurnIntentCacheStatus = "";
 
         protected override void OnCreate()
         {
@@ -169,7 +193,7 @@ namespace BetaTestDrivingMod
             DirectDriveRuntime.SetIdle("No driveable live car found near camera. Let traffic spawn, select a car, then press V.");
             if (m_LogCooldown-- <= 0)
             {
-                Mod.log.Info("Direct Drive possession rejected: no live road car with TransformFrame/Moving/CarNavigation was found near camera.");
+                Mod.log.Info("Direct Drive possession rejected: no live road car with Moving/CarNavigation was found near camera.");
                 m_LogCooldown = 120;
             }
         }
@@ -192,6 +216,11 @@ namespace BetaTestDrivingMod
             m_LastTrafficLane = Entity.Null;
             m_LastTrafficChangeLane = Entity.Null;
             m_LastTrafficCurvePosition = new float2(-1f, -1f);
+            m_TrafficPresenceCandidateLane = Entity.Null;
+            m_TrafficPresenceCandidateFrames = 0;
+            m_LastTrafficPresenceSyncFrame = 0U;
+            ClearTurnIntentCache();
+            InvalidateVehicleCollisionCandidateCache();
             FocusPossessedCar(car);
             ClearNavigationBuffer(car);
             PrimeTransformFrames(car, transform, moving);
@@ -210,6 +239,14 @@ namespace BetaTestDrivingMod
             m_LastTrafficLane = Entity.Null;
             m_LastTrafficChangeLane = Entity.Null;
             m_LastTrafficCurvePosition = new float2(-1f, -1f);
+            m_TrafficPresenceCandidateLane = Entity.Null;
+            m_TrafficPresenceCandidateFrames = 0;
+            m_LastTrafficPresenceSyncFrame = 0U;
+            m_LastVehicleCollisionTarget = Entity.Null;
+            m_LastVehicleCollisionFrame = 0U;
+            m_LastVehicleCollisionLogFrame = 0U;
+            ClearTurnIntentCache();
+            InvalidateVehicleCollisionCandidateCache();
             m_PossessedName = "";
             m_SpeedMps = 0f;
             m_RoadGroundOffsetY = 0f;
@@ -220,22 +257,33 @@ namespace BetaTestDrivingMod
 
         private void ClearTrafficPresence()
         {
-            if (m_PossessedCar == Entity.Null)
+            Entity lastTrafficLane = m_LastTrafficLane;
+            Entity lastTrafficChangeLane = m_LastTrafficChangeLane;
+            Entity car = m_PossessedCar;
+
+            m_LastTrafficLane = Entity.Null;
+            m_LastTrafficChangeLane = Entity.Null;
+            m_LastTrafficCurvePosition = new float2(-1f, -1f);
+            m_TrafficPresenceCandidateLane = Entity.Null;
+            m_TrafficPresenceCandidateFrames = 0;
+            m_LastTrafficPresenceSyncFrame = 0U;
+
+            if (car == Entity.Null)
                 return;
 
             try
             {
-                if (m_LastTrafficLane != Entity.Null)
-                    RemoveLaneObject(m_LastTrafficLane, m_PossessedCar);
+                if (lastTrafficLane != Entity.Null)
+                    RemoveLaneObject(lastTrafficLane, car);
 
-                if (m_LastTrafficChangeLane != Entity.Null && m_LastTrafficChangeLane != m_LastTrafficLane)
-                    RemoveLaneObject(m_LastTrafficChangeLane, m_PossessedCar);
+                if (lastTrafficChangeLane != Entity.Null && lastTrafficChangeLane != lastTrafficLane)
+                    RemoveLaneObject(lastTrafficChangeLane, car);
             }
             catch (Exception ex)
             {
                 if (m_LogCooldown-- <= 0)
                 {
-                    Mod.log.Warn($"Direct Drive lane cleanup skipped after {ex.GetType().Name}: {ex.Message}");
+                    Mod.log.Warn($"Direct Drive lane presence cleanup skipped after {ex.GetType().Name}: {ex.Message}");
                     m_LogCooldown = 180;
                 }
             }
@@ -243,6 +291,7 @@ namespace BetaTestDrivingMod
 
         private void ApplyDirectControl(Entity car)
         {
+            DirectDriveRuntime.SanitizeDrivingTuning();
             DirectDriveInputFrame input = DirectDriveRuntime.ConsumeDriveInput();
             ObjectTransform transform = EntityManager.GetComponentData<ObjectTransform>(car);
             Moving moving = EntityManager.GetComponentData<Moving>(car);
@@ -257,6 +306,7 @@ namespace BetaTestDrivingMod
                 m_SpeedMps = currentForwardSpeed;
 
             float dt = kSimulationStepSeconds;
+            Vector3 previousPosition = position;
             bool reverseCommand = UpdateReverseState(input.Throttle, input.Brake > 0.1f, input.BrakePressed, currentForwardSpeed);
             float targetSpeedMps = BuildTargetSpeed(input, reverseCommand);
             bool braking = (input.Brake > 0.1f && !reverseCommand) || Mathf.Abs(targetSpeedMps) < Mathf.Abs(m_SpeedMps) - 0.1f;
@@ -267,8 +317,11 @@ namespace BetaTestDrivingMod
             forward = FlattenForward(rotation * Vector3.forward);
             Vector3 velocity = forward * m_SpeedMps;
             position += velocity * dt;
+            Entity collisionEntity = Entity.Null;
+            bool vehicleCollision = DirectDriveRuntime.VehicleCollisionEnabled &&
+                TryResolveVehicleCollision(car, previousPosition, rotation, forward, ref position, ref velocity, ref m_SpeedMps, out collisionEntity);
 
-            if (TryGetRoadPose(currentLane, position, forward, rotation * Vector3.right, out Entity roadLane, out Vector3 lanePosition, out _, out _, out float curveT, out float curveSign))
+            if (TryGetRoadPose(currentLane, position, forward, rotation * Vector3.right, out Entity roadLane, out Vector3 lanePosition, out Vector3 laneForward, out _, out float curveT, out float curveSign, out float roadXzDistanceSq))
             {
                 if (DirectDriveRuntime.RoadHeightAssist)
                 {
@@ -277,11 +330,44 @@ namespace BetaTestDrivingMod
                     position.y = Mathf.MoveTowards(position.y, blendedY, kMaxVerticalCorrectionPerTick);
                 }
 
-                ApplyRoadPoseToCurrentLane(ref currentLane, roadLane, curveT, curveSign);
-                SyncTrafficPresence(car, currentLane);
+                if (!m_RoadLaneWriteCrashguardLogged)
+                {
+                    Mod.log.Info($"Direct Drive road-entry lane writes disabled in local crashguard build; nearest road lane {roadLane} is used only for height assist.");
+                    m_RoadLaneWriteCrashguardLogged = true;
+                }
+
+                Vector3 trafficLaneForward = laneForward;
+                float trafficCurveSign = curveSign;
+                if (EntityManager.TryGetComponent(roadLane, out Game.Net.Curve roadCurve))
+                    trafficLaneForward = GetLaneForwardClosestTo(roadCurve, curveT, forward, out trafficCurveSign);
+
+                if (CanSyncTrafficPresence(forward, trafficLaneForward, roadXzDistanceSq))
+                {
+                    CarCurrentLane trafficPresenceLane = currentLane;
+                    ApplyRoadPoseToCurrentLane(ref trafficPresenceLane, roadLane, curveT, trafficCurveSign);
+                    ApplyTrafficPresenceLookAhead(ref trafficPresenceLane, roadLane, curveT, trafficCurveSign);
+                    SyncTrafficPresence(car, trafficPresenceLane);
+                }
+                else
+                {
+                    ClearTrafficPresence();
+                }
+            }
+            else
+            {
+                ClearTrafficPresence();
             }
 
-            string intentStatus = ApplyRoadIntent(car, ref currentLane, position, forward, input);
+            string intentStatus = DirectDriveRuntime.RoadIntentAssist
+                ? (m_LastTrafficLane != Entity.Null
+                    ? "Road entry crashguard: traffic presence active"
+                    : "Road entry crashguard: stabilizing traffic presence")
+                : "Road intent assist off";
+            if (vehicleCollision)
+            {
+                braking = true;
+                intentStatus = collisionEntity != Entity.Null ? $"Vehicle collision: blocked by {collisionEntity.Index}" : "Vehicle collision";
+            }
 
             transform.m_Position = ToMathVector(position);
             transform.m_Rotation = ToMathQuaternion(rotation);
@@ -304,7 +390,6 @@ namespace BetaTestDrivingMod
             EntityManager.SetComponentData(car, transform);
             EntityManager.SetComponentData(car, moving);
             EntityManager.SetComponentData(car, navigation);
-            EntityManager.SetComponentData(car, currentLane);
             UpdateLatestTransformFrame(car, transform, moving, input, braking, reverseCommand);
 
             DirectDriveRuntime.SetDriving(car, m_PossessedName, position, rotation, math.abs(m_SpeedMps), braking, m_ReverseArmed || m_ReverseActive, intentStatus);
@@ -432,6 +517,9 @@ namespace BetaTestDrivingMod
                 ? (invertTurnFlags ? CarLaneFlags.TurnRight : CarLaneFlags.TurnLeft)
                 : (invertTurnFlags ? CarLaneFlags.TurnLeft : CarLaneFlags.TurnRight);
 
+            if (TryApplyCachedTurnIntent(car, currentLane.m_Lane, side, out turnFlag, out status))
+                return true;
+
             Entity bestConnection = Entity.Null;
             Entity bestExit = Entity.Null;
             float2 bestConnectionCurvePosition = default;
@@ -525,32 +613,105 @@ namespace BetaTestDrivingMod
                 return false;
             }
 
-            if (EntityManager.HasBuffer<CarNavigationLane>(car))
-            {
-                DynamicBuffer<CarNavigationLane> navigationLanes = EntityManager.GetBuffer<CarNavigationLane>(car);
-                navigationLanes.Clear();
-                navigationLanes.Add(new CarNavigationLane
-                {
-                    m_Lane = bestConnection,
-                    m_CurvePosition = bestConnectionCurvePosition,
-                    m_Flags = bestConnectionFlags
-                });
-
-                if (bestExit != Entity.Null)
-                {
-                    navigationLanes.Add(new CarNavigationLane
-                    {
-                        m_Lane = bestExit,
-                        m_CurvePosition = bestExitCurvePosition,
-                        m_Flags = bestExitFlags
-                    });
-                }
-            }
-
             status = side < 0
                 ? $"AI path intent: left queued connection={bestConnection}"
                 : $"AI path intent: right queued connection={bestConnection}";
+            CacheTurnIntent(
+                currentLane.m_Lane,
+                side,
+                turnFlag,
+                bestConnection,
+                bestConnectionCurvePosition,
+                bestConnectionFlags,
+                bestExit,
+                bestExitCurvePosition,
+                bestExitFlags,
+                status);
+            WriteTurnIntentNavigation(car, bestConnection, bestConnectionCurvePosition, bestConnectionFlags, bestExit, bestExitCurvePosition, bestExitFlags);
             return true;
+        }
+
+        private bool TryApplyCachedTurnIntent(Entity car, Entity lane, int side, out CarLaneFlags turnFlag, out string status)
+        {
+            turnFlag = default;
+            status = "";
+            uint frame = m_SimulationSystem != null ? m_SimulationSystem.frameIndex : 0U;
+            if (m_TurnIntentCacheLane != lane ||
+                m_TurnIntentCacheSide != side ||
+                m_TurnIntentCacheConnection == Entity.Null ||
+                (frame != 0U && m_TurnIntentCacheFrame != 0U && frame - m_TurnIntentCacheFrame > kTurnIntentCacheFrames) ||
+                !EntityManager.Exists(m_TurnIntentCacheConnection) ||
+                (m_TurnIntentCacheExit != Entity.Null && !EntityManager.Exists(m_TurnIntentCacheExit)))
+            {
+                return false;
+            }
+
+            turnFlag = m_TurnIntentCacheTurnFlag;
+            status = m_TurnIntentCacheStatus;
+            WriteTurnIntentNavigation(
+                car,
+                m_TurnIntentCacheConnection,
+                m_TurnIntentCacheConnectionCurvePosition,
+                m_TurnIntentCacheConnectionFlags,
+                m_TurnIntentCacheExit,
+                m_TurnIntentCacheExitCurvePosition,
+                m_TurnIntentCacheExitFlags);
+            return true;
+        }
+
+        private void CacheTurnIntent(Entity lane, int side, CarLaneFlags turnFlag, Entity connection, float2 connectionCurvePosition, CarLaneFlags connectionFlags, Entity exit, float2 exitCurvePosition, CarLaneFlags exitFlags, string status)
+        {
+            m_TurnIntentCacheLane = lane;
+            m_TurnIntentCacheSide = side;
+            m_TurnIntentCacheTurnFlag = turnFlag;
+            m_TurnIntentCacheConnection = connection;
+            m_TurnIntentCacheConnectionCurvePosition = connectionCurvePosition;
+            m_TurnIntentCacheConnectionFlags = connectionFlags;
+            m_TurnIntentCacheExit = exit;
+            m_TurnIntentCacheExitCurvePosition = exitCurvePosition;
+            m_TurnIntentCacheExitFlags = exitFlags;
+            m_TurnIntentCacheStatus = status;
+            m_TurnIntentCacheFrame = m_SimulationSystem != null ? m_SimulationSystem.frameIndex : 0U;
+        }
+
+        private void ClearTurnIntentCache()
+        {
+            m_TurnIntentCacheLane = Entity.Null;
+            m_TurnIntentCacheConnection = Entity.Null;
+            m_TurnIntentCacheExit = Entity.Null;
+            m_TurnIntentCacheSide = 0;
+            m_TurnIntentCacheFrame = 0U;
+            m_TurnIntentCacheTurnFlag = default;
+            m_TurnIntentCacheConnectionFlags = default;
+            m_TurnIntentCacheExitFlags = default;
+            m_TurnIntentCacheConnectionCurvePosition = default;
+            m_TurnIntentCacheExitCurvePosition = default;
+            m_TurnIntentCacheStatus = "";
+        }
+
+        private void WriteTurnIntentNavigation(Entity car, Entity connection, float2 connectionCurvePosition, CarLaneFlags connectionFlags, Entity exit, float2 exitCurvePosition, CarLaneFlags exitFlags)
+        {
+            if (!EntityManager.HasBuffer<CarNavigationLane>(car))
+                return;
+
+            DynamicBuffer<CarNavigationLane> navigationLanes = EntityManager.GetBuffer<CarNavigationLane>(car);
+            navigationLanes.Clear();
+            navigationLanes.Add(new CarNavigationLane
+            {
+                m_Lane = connection,
+                m_CurvePosition = connectionCurvePosition,
+                m_Flags = connectionFlags
+            });
+
+            if (exit != Entity.Null)
+            {
+                navigationLanes.Add(new CarNavigationLane
+                {
+                    m_Lane = exit,
+                    m_CurvePosition = exitCurvePosition,
+                    m_Flags = exitFlags
+                });
+            }
         }
 
         private bool TryBuildExitNavigationLane(Entity lane, Vector3 preferredForward, int side, out float2 curvePosition, out CarLaneFlags flags)
@@ -628,10 +789,16 @@ namespace BetaTestDrivingMod
             try
             {
                 UpdateFrame updateFrame = EntityManager.GetSharedComponentManaged<UpdateFrame>(car);
-                ObjectInterpolateSystem.CalculateUpdateFrames(m_SimulationSystem.frameIndex, 0f, updateFrame.m_Index, out uint updateFrameA, out uint updateFrameB, out float framePosition);
+                ObjectInterpolateSystem.CalculateUpdateFrames(
+                    m_SimulationSystem.frameIndex,
+                    0f,
+                    updateFrame.m_Index,
+                    out uint updateFrameA,
+                    out uint updateFrameB,
+                    out float framePosition);
+
                 frameA = Mathf.Clamp((int)updateFrameA, 0, frames.Length - 1);
                 frameB = Mathf.Clamp((int)updateFrameB, 0, frames.Length - 1);
-
                 WritePredictedTransformFrame(frames, frameA, transform, moving, flags, -framePosition);
                 WritePredictedTransformFrame(frames, frameB, transform, moving, flags, 1f - framePosition);
                 return;
@@ -641,6 +808,19 @@ namespace BetaTestDrivingMod
             }
 
             WritePredictedTransformFrame(frames, frameA, transform, moving, flags, 0f);
+        }
+
+        private void PrimeTransformFrames(Entity car, ObjectTransform transform, Moving moving)
+        {
+            if (!EntityManager.HasBuffer<TransformFrame>(car))
+                return;
+
+            DynamicBuffer<TransformFrame> frames = EntityManager.GetBuffer<TransformFrame>(car);
+            if (frames.Length == 0)
+                return;
+
+            for (int i = 0; i < frames.Length; i++)
+                WritePredictedTransformFrame(frames, i, transform, moving, TransformFlags.RearLights, 0f);
         }
 
         private static void WritePredictedTransformFrame(DynamicBuffer<TransformFrame> frames, int index, ObjectTransform transform, Moving moving, TransformFlags flags, float frameOffset)
@@ -664,23 +844,10 @@ namespace BetaTestDrivingMod
             return ToMathQuaternion(offset * current);
         }
 
-        private void PrimeTransformFrames(Entity car, ObjectTransform transform, Moving moving)
-        {
-            if (!EntityManager.HasBuffer<TransformFrame>(car))
-                return;
-
-            DynamicBuffer<TransformFrame> frames = EntityManager.GetBuffer<TransformFrame>(car);
-            if (frames.Length == 0)
-                return;
-
-            for (int i = 0; i < frames.Length; i++)
-                WritePredictedTransformFrame(frames, i, transform, moving, TransformFlags.RearLights, 0f);
-        }
-
         private float ResolveGroundOffset(Entity car, Vector3 position, Vector3 forward, Vector3 right)
         {
             if (EntityManager.TryGetComponent(car, out CarCurrentLane currentLane) &&
-                TryGetRoadPose(currentLane, position, forward, right, out _, out Vector3 roadPosition, out _, out _, out _, out _))
+                TryGetRoadPose(currentLane, position, forward, right, out _, out Vector3 roadPosition, out _, out _, out _, out _, out _))
             {
                 return Mathf.Clamp(position.y - roadPosition.y, -0.25f, 1.25f);
             }
@@ -688,7 +855,7 @@ namespace BetaTestDrivingMod
             return 0f;
         }
 
-        private bool TryGetRoadPose(CarCurrentLane currentLane, Vector3 position, Vector3 fallbackForward, Vector3 fallbackRight, out Entity roadLane, out Vector3 lanePosition, out Vector3 laneForward, out Vector3 laneRight, out float curveT, out float curveSign)
+        private bool TryGetRoadPose(CarCurrentLane currentLane, Vector3 position, Vector3 fallbackForward, Vector3 fallbackRight, out Entity roadLane, out Vector3 lanePosition, out Vector3 laneForward, out Vector3 laneRight, out float curveT, out float curveSign, out float xzDistanceSq)
         {
             roadLane = Entity.Null;
             lanePosition = default;
@@ -696,6 +863,7 @@ namespace BetaTestDrivingMod
             laneRight = fallbackRight;
             curveT = 0f;
             curveSign = 1f;
+            xzDistanceSq = float.MaxValue;
 
             bool found = false;
             float bestScore = float.MaxValue;
@@ -730,6 +898,7 @@ namespace BetaTestDrivingMod
                 }
             }
 
+            xzDistanceSq = bestXzDistanceSq;
             return found && bestXzDistanceSq <= kMaxRoadAttachDistanceSq && roadLane != Entity.Null;
         }
 
@@ -858,10 +1027,92 @@ namespace BetaTestDrivingMod
             currentLane.m_LanePosition = 0f;
         }
 
+        private bool CanSyncTrafficPresence(Vector3 vehicleForward, Vector3 laneForward, float xzDistanceSq)
+        {
+            if (xzDistanceSq > kTrafficPresenceMaxRoadAttachDistanceSq)
+                return false;
+
+            Vector3 flatVehicleForward = FlattenForward(vehicleForward);
+            Vector3 flatLaneForward = FlattenForward(laneForward);
+            return Vector3.Dot(flatVehicleForward, flatLaneForward) >= kTrafficPresenceMinForwardDot;
+        }
+
+        private void ApplyTrafficPresenceLookAhead(ref CarCurrentLane currentLane, Entity roadLane, float curveT, float curveSign)
+        {
+            float span = kTrafficPresenceMinCurveSpan;
+            if (roadLane != Entity.Null &&
+                EntityManager.TryGetComponent(roadLane, out Game.Net.Curve curve) &&
+                curve.m_Length > 1f)
+            {
+                span = Mathf.Clamp(kTrafficPresenceLookAheadMeters / curve.m_Length, kTrafficPresenceMinCurveSpan, kTrafficPresenceMaxCurveSpan);
+            }
+
+            currentLane.m_CurvePosition.x = Mathf.Clamp01(curveT);
+            currentLane.m_CurvePosition.y = Mathf.Clamp01(curveT + (curveSign < 0f ? -span : span));
+            currentLane.m_CurvePosition.z = curveSign < 0f ? 0f : 1f;
+        }
+
         private void SyncTrafficPresence(Entity car, CarCurrentLane currentLane)
         {
             Entity lane = currentLane.m_Lane;
+            if (lane == Entity.Null)
+            {
+                ClearTrafficPresence();
+                return;
+            }
+
+            if (lane != m_TrafficPresenceCandidateLane)
+            {
+                m_TrafficPresenceCandidateLane = lane;
+                m_TrafficPresenceCandidateFrames = 1;
+                return;
+            }
+
+            if (m_TrafficPresenceCandidateFrames < kTrafficPresenceStableFrames)
+            {
+                m_TrafficPresenceCandidateFrames++;
+                return;
+            }
+
+            uint frame = m_SimulationSystem != null ? m_SimulationSystem.frameIndex : 0U;
+            if (frame != 0U &&
+                m_LastTrafficPresenceSyncFrame != 0U &&
+                frame - m_LastTrafficPresenceSyncFrame < kTrafficPresenceMinSyncFrames &&
+                lane == m_LastTrafficLane)
+            {
+                return;
+            }
+
+            try
+            {
+                SyncTrafficPresenceSafe(car, currentLane);
+                m_LastTrafficPresenceSyncFrame = frame;
+
+                if (!m_TrafficPresenceRestoredLogged)
+                {
+                    Mod.log.Info("Direct Drive stable traffic presence restored without writing CarCurrentLane back to the possessed vehicle.");
+                    m_TrafficPresenceRestoredLogged = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (m_LogCooldown-- <= 0)
+                {
+                    Mod.log.Warn($"Direct Drive stable lane presence sync skipped after {ex.GetType().Name}: {ex.Message}");
+                    m_LogCooldown = 180;
+                }
+
+                ClearTrafficPresence();
+            }
+        }
+
+        private void SyncTrafficPresenceSafe(Entity car, CarCurrentLane currentLane)
+        {
+            Entity lane = currentLane.m_Lane;
             float2 curvePosition = currentLane.m_CurvePosition.xy;
+            if (!math.all(math.isfinite(curvePosition)))
+                return;
+
             bool laneChanged = lane != m_LastTrafficLane || currentLane.m_ChangeLane != m_LastTrafficChangeLane;
             bool curveMoved = math.lengthsq(curvePosition - m_LastTrafficCurvePosition) > 0.000025f;
             bool periodic = m_SimulationSystem == null || (m_SimulationSystem.frameIndex & 3U) == 0U;
@@ -990,6 +1241,7 @@ namespace BetaTestDrivingMod
 
         private void ClearNavigationBuffer(Entity car)
         {
+            ClearTurnIntentCache();
             if (!EntityManager.HasBuffer<CarNavigationLane>(car))
                 return;
 

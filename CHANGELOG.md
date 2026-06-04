@@ -4,6 +4,101 @@
 
 - Re-licenses the repository under the MIT License so everyone can fork, modify, build, publish, and make improved variants of the mod.
 - Updates the GitHub README, notice, local mod metadata, and Paradox publish description to remove the old inspection-only restriction.
+- Renames the public listing and in-game labels to `Beta Test Driving Mod (Stable)`.
+- Stops scheduling the disabled experimental police chase system in the public build.
+- Restores the published possessed-car `TransformFrame` update path so camera and driving animation feel match the public build.
+- Adds broad finite/range sanity guards for non-collision driving and chase-camera tuning values.
+- Disables live lane-object buffer syncing in the local crashguard build while keeping dedicated vehicle collision enabled.
+- Keeps a live game camera controller active while the custom chase camera applies its pose.
+- Stops writing live road lane state when the possessed vehicle enters a road; road lookup is used only for height assist.
+- Uses fixed crashguard hitboxes for vehicle collision during live driving instead of reading prefab mesh/geometry bounds in the collision loop.
+- Restores stable lane-object traffic presence so other cars can see the possessed vehicle again without re-enabling the crashy `CarCurrentLane` write.
+
+## 0.3.27-stable
+
+- Publishes the `0.3.24-traffic-presence-crashguard-local` transform-frame animation behavior after local anchored/capped animation tests caused visible jitter.
+- Keeps traffic presence limited to close, direction-matching road lanes so AI cars do not react to stale far-away lane markers.
+- Keeps road-entry `CarCurrentLane` writes disabled for the crash fix.
+
+## 0.3.27-0324-base-traffic-tightening-local
+
+- Restores the `0.3.24-traffic-presence-crashguard-local` transform-frame animation behavior after the anchored/capped animation tests caused visible back-and-forth jitter.
+- Keeps the traffic-presence lane gate tight so AI cars do not react to a stale far-away lane marker.
+- Keeps road-entry `CarCurrentLane` writes disabled.
+
+## 0.3.26-smooth-animation-local
+
+- Restores CS2's expected two-frame possessed-car interpolation path so the car does not jitter back and forth.
+- Caps render-frame prediction to a short two-tick window so the visible car stays close to the live transform and collision point.
+- Keeps the tightened traffic-presence lane gate from `0.3.25`.
+
+## 0.3.25-anchored-collision-local
+
+- Anchors every possessed-car `TransformFrame` entry to the current live transform so the rendered car and collision hitbox do not drift apart while moving fast.
+- Clears traffic lane-object presence whenever the nearest road lane is too far away or points away from the driven car.
+- Uses a short forward traffic-presence lookahead instead of a same-point lane marker, so AI traffic reacts closer to the actual car.
+
+## 0.3.24-traffic-presence-crashguard-local
+
+- Restores traffic visibility by adding the possessed car back to road lane-object presence after the nearest road lane is stable for several frames.
+- Keeps the road-entry crash fix by not writing `CarCurrentLane` road state back onto the possessed vehicle.
+- Throttles lane-object presence updates and cleans the lane marker on release.
+
+## 0.3.24-stable
+
+- Publishes the crash-fixed traffic-presence build as `Beta Test Driving Mod (Stable)`.
+- Keeps vehicle collision enabled with fixed crashguard hitboxes.
+- Keeps road-entry lane-state writes disabled while restoring stable lane-object presence so traffic can see the driven car.
+
+## 0.3.23-road-entry-crashguard-local
+
+- Keeps vehicle collision enabled.
+- Stops writing `CarCurrentLane` road state when the driven vehicle gets onto a road, matching the latest crash repro.
+- Keeps road height assist by reading the nearest road pose without attaching the vehicle to that lane.
+- Switches collision to fixed crashguard hitboxes so the live collision loop no longer reads prefab mesh/geometry bounds.
+
+## 0.3.22-camera-controller-crashguard-local
+
+- Keeps vehicle collision enabled.
+- Avoids setting `CameraUpdateSystem.activeCameraController` to null during chase camera control.
+- Adds one-time camera breadcrumbs before and after the first custom camera pose so native camera crashes can be isolated.
+- Keeps shared lane-object buffer writes disabled from `0.3.21`.
+
+## 0.3.21-lane-buffer-crashguard-local
+
+- Keeps vehicle collision enabled instead of filtering out heavy vehicles.
+- Stops writing shared road lane-object buffers during possession to avoid native ECS crashes after taking over traffic vehicles.
+- Keeps the published possessed-car transform-frame update path, chase camera behavior, and cached collision candidate scans.
+
+## 0.3.18-crashfix-local
+
+- Restores the local test cache from the published `0.3.17-collision-tuning-public` package before applying local crashfix changes.
+- Caches nearby vehicle collision candidates so dense traffic is not scanned and allocated every driving tick.
+- Reuses recent road-turn intent resolution while the same steering input is held, reducing repeated lane-connection scans.
+- Keeps the published collision tuning behavior intact while reducing per-frame allocation pressure and traffic-query work.
+
+## 0.3.19-stability-local
+
+- Keeps vehicle collision enabled by default while removing the riskiest collision-side writes.
+- Stops pushing other live traffic vehicles or rewriting their transform frames after impacts.
+- Uses current traffic transforms for collision checks instead of interpolation-frame reads.
+- Clears queued impact state whenever collision is disabled.
+
+## 0.3.20-collision-crashguard-local
+
+- Keeps vehicle collision enabled instead of filtering out heavy vehicles.
+- Restores the published possessed-car transform-frame update path for camera and driving feel.
+- Keeps cached collision candidate scans to reduce repeated per-frame traffic allocations.
+- Keeps collision checks from reading other traffic interpolation buffers or writing push transforms into hit vehicles.
+
+## 0.3.17-collision-tuning-public
+
+- Ports the CS2 GTA Edition vehicle collision layer into Beta Test Driving Mod.
+- Adds moving-target hitbox alignment, fast sustained-contact shape collision, and smooth speed-based impact push for hit cars.
+- Adds tuning panel controls for collision on/off, impact push, push duration, damping, and retained speed after impact.
+- Keeps hitbox size fixed at the tested default and does not expose it as a tuning control.
+- Leaves existing Beta Test Driving Mod speed, steering, road assist, camera, tuning, and possession mechanics unchanged.
+- Does not add building collision or crash fire effects.
 
 ## 0.3.16-public-ui-safe
 

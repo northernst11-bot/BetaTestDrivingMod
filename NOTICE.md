@@ -1,6 +1,6 @@
 # Open Source Notice
 
-Beta Test Driving Mod is open source under the [MIT License](LICENSE).
+Beta Test Driving Mod (Stable) is open source under the [MIT License](LICENSE).
 
 Everyone may use, copy, modify, fork, build, publish, redistribute, sublicense, sell, and make improved variants or replacement versions from this mod's source code and original project assets.
 

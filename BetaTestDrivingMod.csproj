@@ -14,7 +14,9 @@
 
   <ItemGroup>
     <Compile Remove="publish\**\*.cs" />
+    <Compile Remove="decompiled_published_0317\**\*.cs" />
     <None Include="publish\**\*" />
+    <None Include="decompiled_published_0317\**\*" />
   </ItemGroup>
 
   <ItemGroup>

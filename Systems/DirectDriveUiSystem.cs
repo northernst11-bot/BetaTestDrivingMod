@@ -27,6 +27,8 @@ namespace BetaTestDrivingMod
         private ValueBinding<bool> m_RoadIntentAssist;
         private ValueBinding<bool> m_RoadHeightAssist;
         private ValueBinding<bool> m_FreezeVanillaNavigation;
+        private ValueBinding<bool> m_VehicleCollisionEnabled;
+        private ValueBinding<float> m_CollisionRetainedSpeed;
         private ValueBinding<bool> m_ChaseCameraEnabled;
         private ValueBinding<string> m_ChaseCameraStatus;
         private ValueBinding<bool> m_PoliceChaseEnabled;
@@ -73,6 +75,8 @@ namespace BetaTestDrivingMod
             AddBinding(m_RoadIntentAssist = new ValueBinding<bool>(kGroup, "RoadIntentAssist", DirectDriveRuntime.RoadIntentAssist, null, null));
             AddBinding(m_RoadHeightAssist = new ValueBinding<bool>(kGroup, "RoadHeightAssist", DirectDriveRuntime.RoadHeightAssist, null, null));
             AddBinding(m_FreezeVanillaNavigation = new ValueBinding<bool>(kGroup, "FreezeVanillaNavigation", DirectDriveRuntime.FreezeVanillaNavigation, null, null));
+            AddBinding(m_VehicleCollisionEnabled = new ValueBinding<bool>(kGroup, "VehicleCollisionEnabled", DirectDriveRuntime.VehicleCollisionEnabled, null, null));
+            AddBinding(m_CollisionRetainedSpeed = new ValueBinding<float>(kGroup, "CollisionRetainedSpeed", DirectDriveRuntime.CollisionRetainedSpeed, null, null));
             AddBinding(m_ChaseCameraEnabled = new ValueBinding<bool>(kGroup, "ChaseCameraEnabled", DirectDriveRuntime.ChaseCameraEnabled, null, null));
             AddBinding(m_ChaseCameraStatus = new ValueBinding<string>(kGroup, "ChaseCameraStatus", DirectDriveRuntime.ChaseCameraStatus, null, null));
             AddBinding(m_PoliceChaseEnabled = new ValueBinding<bool>(kGroup, "PoliceChaseEnabled", DirectDriveRuntime.PoliceChaseEnabled, null, null));
@@ -103,6 +107,7 @@ namespace BetaTestDrivingMod
             AddBinding(new TriggerBinding<bool>(kGroup, "SetRoadIntentAssist", new Action<bool>(SetRoadIntentAssist), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetRoadHeightAssist", new Action<bool>(SetRoadHeightAssist), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetFreezeVanillaNavigation", new Action<bool>(SetFreezeVanillaNavigation), null));
+            AddBinding(new TriggerBinding<bool>(kGroup, "SetVehicleCollisionEnabled", new Action<bool>(SetVehicleCollisionEnabled), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetChaseCameraEnabled", new Action<bool>(SetChaseCameraEnabled), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetPoliceChaseEnabled", new Action<bool>(SetPoliceChaseEnabled), null));
             AddBinding(new TriggerBinding<float>(kGroup, "SetTargetSpeedMph", new Action<float>(SetTargetSpeedMph), null));
@@ -117,6 +122,7 @@ namespace BetaTestDrivingMod
             AddBinding(new TriggerBinding<float>(kGroup, "SetChaseCameraDistance", new Action<float>(SetChaseCameraDistance), null));
             AddBinding(new TriggerBinding<float>(kGroup, "SetChaseCameraHeight", new Action<float>(SetChaseCameraHeight), null));
             AddBinding(new TriggerBinding<float>(kGroup, "SetChaseCameraLookAhead", new Action<float>(SetChaseCameraLookAhead), null));
+            AddBinding(new TriggerBinding<float>(kGroup, "SetCollisionRetainedSpeed", new Action<float>(SetCollisionRetainedSpeed), null));
         }
 
         [Preserve]
@@ -164,6 +170,12 @@ namespace BetaTestDrivingMod
         private void SetFreezeVanillaNavigation(bool value)
         {
             DirectDriveRuntime.ApplyPublicSafeDefaults();
+            UpdateBindings();
+        }
+
+        private void SetVehicleCollisionEnabled(bool value)
+        {
+            DirectDriveRuntime.VehicleCollisionEnabled = value;
             UpdateBindings();
         }
 
@@ -251,6 +263,12 @@ namespace BetaTestDrivingMod
             UpdateBindings();
         }
 
+        private void SetCollisionRetainedSpeed(float value)
+        {
+            DirectDriveRuntime.CollisionRetainedSpeed = AcceptFinite(value, DirectDriveRuntime.CollisionRetainedSpeed);
+            UpdateBindings();
+        }
+
         private static float AcceptFinite(float value, float fallback)
         {
             if (float.IsNaN(value) || float.IsInfinity(value))
@@ -277,6 +295,8 @@ namespace BetaTestDrivingMod
             m_RoadIntentAssist.Update(DirectDriveRuntime.RoadIntentAssist);
             m_RoadHeightAssist.Update(DirectDriveRuntime.RoadHeightAssist);
             m_FreezeVanillaNavigation.Update(DirectDriveRuntime.FreezeVanillaNavigation);
+            m_VehicleCollisionEnabled.Update(DirectDriveRuntime.VehicleCollisionEnabled);
+            m_CollisionRetainedSpeed.Update(DirectDriveRuntime.CollisionRetainedSpeed);
             m_ChaseCameraEnabled.Update(DirectDriveRuntime.ChaseCameraEnabled);
             m_ChaseCameraStatus.Update(DirectDriveRuntime.ChaseCameraStatus ?? "");
             m_PoliceChaseEnabled.Update(DirectDriveRuntime.PoliceChaseEnabled);

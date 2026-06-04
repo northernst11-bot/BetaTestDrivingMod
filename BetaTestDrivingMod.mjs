@@ -34,6 +34,8 @@ const roadHeightStickiness = api.bindValue(group, "RoadHeightStickiness", 0.45);
 const chaseCameraDistance = api.bindValue(group, "ChaseCameraDistance", 10.5);
 const chaseCameraHeight = api.bindValue(group, "ChaseCameraHeight", 3.25);
 const chaseCameraLookAhead = api.bindValue(group, "ChaseCameraLookAhead", 12);
+const vehicleCollisionEnabled = api.bindValue(group, "VehicleCollisionEnabled", true);
+const collisionRetainedSpeed = api.bindValue(group, "CollisionRetainedSpeed", 0.35);
 
 const panel = {
     position: "absolute",
@@ -391,7 +393,17 @@ function TuningView() {
         h(SliderRow, { binding: roadHeightStickiness, action: "SetRoadHeightStickiness", label: "Road attach strength", step: 0.01, format: value => value.toFixed(2) }),
         h(SliderRow, { binding: chaseCameraDistance, action: "SetChaseCameraDistance", label: "Camera distance", step: 0.5, format: value => value.toFixed(1), unit: " m" }),
         h(SliderRow, { binding: chaseCameraHeight, action: "SetChaseCameraHeight", label: "Camera height", step: 0.25, format: value => value.toFixed(2), unit: " m" }),
-        h(SliderRow, { binding: chaseCameraLookAhead, action: "SetChaseCameraLookAhead", label: "Camera look ahead", step: 0.5, format: value => value.toFixed(1), unit: " m" })
+        h(SliderRow, { binding: chaseCameraLookAhead, action: "SetChaseCameraLookAhead", label: "Camera look ahead", step: 0.5, format: value => value.toFixed(1), unit: " m" }),
+        h("div", {
+            style: {
+                marginTop: "12rem",
+                paddingTop: "10rem",
+                borderTop: "1rem solid rgba(255, 255, 255, 0.16)",
+                fontWeight: "750"
+            }
+        }, "Collision"),
+        h(ToggleRow, { binding: vehicleCollisionEnabled, action: "SetVehicleCollisionEnabled", label: "Vehicle collision", hint: "Bump into traffic instead of clipping through cars." }),
+        h(SliderRow, { binding: collisionRetainedSpeed, action: "SetCollisionRetainedSpeed", label: "Retained speed after hit", step: 0.01, format: value => value.toFixed(2) })
     );
 }
 
@@ -400,7 +412,7 @@ function BetaTestDrivingButton() {
 
     return h(ui.Tooltip, {
         tooltip: h("div", { style: { padding: "4rem 0" } },
-            h("div", { style: { fontWeight: "700", marginBottom: "2rem" } }, "Beta Test Driving Mod"),
+            h("div", { style: { fontWeight: "700", marginBottom: "2rem" } }, "Beta Test Driving Mod (Stable)"),
             h("div", null, visible ? "Hide driving panel" : "Open driving panel")
         )
     },
@@ -410,7 +422,7 @@ function BetaTestDrivingButton() {
             variant: "floating",
             onSelect: togglePanelFromButton,
             onClick: togglePanelFromButton,
-            title: "Beta Test Driving Mod"
+            title: "Beta Test Driving Mod (Stable)"
         })
     );
 }
@@ -435,7 +447,7 @@ function BetaTestDrivingPanel() {
                 }
             }),
             h("div", { style: { flex: 1, minWidth: 0 } },
-                h("div", { style: { fontSize: "15rem", fontWeight: "800" } }, "Beta Test Driving Mod"),
+                h("div", { style: { fontSize: "15rem", fontWeight: "800" } }, "Beta Test Driving Mod (Stable)"),
                 h("div", { style: { marginTop: "1rem", opacity: 0.7, fontSize: "12rem" } }, "Direct Drive")
             ),
             h("button", {

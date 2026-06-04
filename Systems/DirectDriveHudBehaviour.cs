@@ -21,7 +21,7 @@ namespace BetaTestDrivingMod
             EnsureStyles();
             m_Window.width = Mathf.Clamp(390f, 340f, Mathf.Max(340f, Screen.width - 32f));
             m_Window.height = Mathf.Clamp(Screen.height - 165f, 320f, 520f);
-            m_Window = GUI.Window(7114021, m_Window, DrawWindow, "Beta Test Driving Mod");
+            m_Window = GUI.Window(7114021, m_Window, DrawWindow, "Beta Test Driving Mod (Stable)");
         }
 
         private void EnsureStyles()
@@ -77,6 +77,8 @@ namespace BetaTestDrivingMod
             DirectDriveRuntime.MaxTurnDegPerSecond = Slider("Steering response", DirectDriveRuntime.MaxTurnDegPerSecond, 45f, 260f, "0");
             DirectDriveRuntime.LowSpeedTurnBoost = Slider("Low speed turn boost", DirectDriveRuntime.LowSpeedTurnBoost, 0.1f, 1f, "0.00");
             DirectDriveRuntime.RoadHeightStickiness = Slider("Road height stickiness", DirectDriveRuntime.RoadHeightStickiness, 0f, 1f, "0.00");
+            DirectDriveRuntime.VehicleCollisionEnabled = GUILayout.Toggle(DirectDriveRuntime.VehicleCollisionEnabled, "Vehicle collision");
+            DirectDriveRuntime.CollisionRetainedSpeed = Slider("Retained speed", DirectDriveRuntime.CollisionRetainedSpeed, 0f, 1f, "0.00");
 
             GUILayout.Space(8f);
             if (GUILayout.Button("Reset Settings", GUILayout.Height(28f)))

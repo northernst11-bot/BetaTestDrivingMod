@@ -60,6 +60,8 @@ namespace BetaTestDrivingMod
         internal static bool RoadIntentAssist { get; set; } = true;
         internal static bool RoadHeightAssist { get; set; } = true;
         internal static bool FreezeVanillaNavigation { get; set; } = true;
+        internal static bool VehicleCollisionEnabled { get; set; } = true;
+        internal static float CollisionRetainedSpeed { get; set; } = 0.35f;
         internal static bool ChaseCameraEnabled { get; set; } = true;
         internal static float ChaseCameraDistance { get; set; } = 10.5f;
         internal static float ChaseCameraHeight { get; set; } = 3.25f;
@@ -73,12 +75,36 @@ namespace BetaTestDrivingMod
         internal static bool HudVisible { get; private set; }
         internal static bool PanelVisible { get; private set; }
 
+        internal static void SanitizeDrivingTuning()
+        {
+            TargetSpeedMph = ClampFinite(TargetSpeedMph, 42f, 0f, 240f);
+            ReverseSpeedMph = ClampFinite(ReverseSpeedMph, 9f, 0f, 60f);
+            AccelerationMps2 = ClampFinite(AccelerationMps2, 19f, 0f, 160f);
+            BrakeMps2 = ClampFinite(BrakeMps2, 42f, 0f, 240f);
+            CoastMps2 = ClampFinite(CoastMps2, 12f, 0f, 120f);
+            ReverseAccelerationMps2 = ClampFinite(ReverseAccelerationMps2, 12f, 0f, 120f);
+            MaxTurnDegPerSecond = ClampFinite(MaxTurnDegPerSecond, 148f, 0f, 720f);
+            LowSpeedTurnBoost = ClampFinite(LowSpeedTurnBoost, 0.58f, 0f, 3f);
+            RoadHeightStickiness = ClampFinite(RoadHeightStickiness, 0.45f, 0f, 2f);
+            ChaseCameraDistance = ClampFinite(ChaseCameraDistance, 10.5f, 2f, 80f);
+            ChaseCameraHeight = ClampFinite(ChaseCameraHeight, 3.25f, 0.5f, 40f);
+            ChaseCameraLookAhead = ClampFinite(ChaseCameraLookAhead, 12f, 0f, 80f);
+        }
+
+        private static float ClampFinite(float value, float fallback, float min, float max)
+        {
+            if (float.IsNaN(value) || float.IsInfinity(value))
+                return fallback;
+
+            return Mathf.Clamp(value, min, max);
+        }
+
         internal static void EnsureHud()
         {
             if (s_Hud != null)
                 return;
 
-            GameObject hud = new GameObject("Beta Test Driving Mod HUD");
+            GameObject hud = new GameObject("Beta Test Driving Mod (Stable) HUD");
             Object.DontDestroyOnLoad(hud);
             s_Hud = hud.AddComponent<DirectDriveHudBehaviour>();
         }
@@ -259,6 +285,8 @@ namespace BetaTestDrivingMod
             RoadIntentAssist = true;
             RoadHeightAssist = true;
             FreezeVanillaNavigation = true;
+            VehicleCollisionEnabled = true;
+            CollisionRetainedSpeed = 0.35f;
             ChaseCameraEnabled = true;
             ChaseCameraDistance = 10.5f;
             ChaseCameraHeight = 3.25f;
@@ -274,6 +302,7 @@ namespace BetaTestDrivingMod
             RoadIntentAssist = true;
             RoadHeightAssist = true;
             FreezeVanillaNavigation = true;
+            VehicleCollisionEnabled = true;
             ChaseCameraEnabled = true;
             PoliceChaseEnabled = false;
             s_PoliceChaseTestRequested = false;
@@ -301,6 +330,8 @@ namespace BetaTestDrivingMod
             PoliceChaseUnits = 0;
             RedLightViolations = 0;
             PoliceChaseEnabled = false;
+            VehicleCollisionEnabled = true;
+            CollisionRetainedSpeed = 0.35f;
             ChaseCameraEnabled = true;
             ChaseCameraStatus = "Chase camera ready";
             HudVisible = false;

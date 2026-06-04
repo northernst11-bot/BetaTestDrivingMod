@@ -1,6 +1,6 @@
-# Beta Test Driving Mod
+# Beta Test Driving Mod (Stable)
 
-`0.3.16-public-ui-safe`
+`0.3.27-stable`
 
 Source / MIT license: https://github.com/northernst11-bot/BetaTestDrivingMod
 
@@ -12,7 +12,7 @@ Everyone may use, copy, modify, merge, publish, distribute, sublicense, sell, fo
 
 Please keep the MIT copyright and license notice with substantial copies. The MIT license does not grant rights to Cities: Skylines II, Paradox or Colossal Order trademarks, game assets, or third-party content not owned by this project.
 
-This public build keeps the tested Direct Drive control system, keeps crashguard safety around the riskiest control/camera paths, keeps the tested GTA-style attached chase camera, removes the hard tuning value limits from the panel and C# setting setters, and hides advanced assist/chase controls from the public UI.
+This stable public build keeps the tested Direct Drive control system, keeps crashguard safety around the riskiest control/camera paths, keeps the tested GTA-style attached chase camera, removes the hard tuning value limits from the panel and C# setting setters, and hides advanced assist/chase controls from the public UI.
 
 Police chase note: the experimental chase controls are hidden and disabled in this public build while they keep being tested locally.
 
@@ -33,6 +33,15 @@ Use the arrow keys if WASD moves your game camera or screen.
 
 ## Current Build
 
+- Keeps vehicle collision enabled in the stable build.
+- Restores the `0.3.24-traffic-presence-crashguard-local` transform-frame animation path for the stable publish.
+- Tightens lane-object traffic presence to close, direction-matching road lanes so traffic does not react to a stale far-away marker.
+- Uses cached vehicle collision checks, but no longer pushes or rewrites other live traffic vehicles on impact.
+- Uses current vehicle transforms for collision checks instead of reading interpolation frame buffers from other traffic.
+- Reuses recent road-turn intent resolution while the same steering input is held, reducing repeated lane-connection scans at intersections.
+- Keeps fast sustained-contact vehicle collision for the possessed car without rewriting hit cars.
+- Keeps collision tuning for collision on/off and retained speed after impact. Impact-push tuning is hidden in this stability build.
+- Building collision and crash fire effects are not added in this build.
 - Uses the responsive frame-buffered input path from the tested Direct Drive build.
 - Adds a top-left game UI panel for drive status, possession, and tuning sliders.
 - Applies typed tuning values only after Enter or leaving the number field, so multi-digit values can be typed normally.
