@@ -34,6 +34,7 @@ namespace BetaTestDrivingMod
         private const float kVehicleBumperSweepContactBackoff = 0.03f;
         private const float kVehicleBumperSweepResolvePadding = 0.05f;
         private const float kVehicleBumperSweepMinTravelSq = 0.0004f;
+        private const float kVehicleCollisionVerticalPadding = 0.75f;
         private const float kVehicleMeshSweepFallbackMinHeight = 0.32f;
         private const float kVehicleMeshSweepFallbackMaxHeight = 1.55f;
         private const float kVehicleCollisionBroadphasePadding = 0.75f;
@@ -57,20 +58,41 @@ namespace BetaTestDrivingMod
         private bool TryResolveVehicleCollision(Entity car, Vector3 previousPosition, Quaternion rotation, Vector3 forward, ref Vector3 position, ref Vector3 velocity, ref float speedMps, out Entity hit)
         {
             hit = Entity.Null;
+            bool debugEnabled = DirectDriveRuntime.VisualCollisionDebugEnabled;
             if (!DirectDriveRuntime.VehicleCollisionEnabled)
+            {
+                if (debugEnabled)
+                    DirectDriveRuntime.ClearCollisionDebug();
+
                 return false;
+            }
 
             EnsureVehicleCollisionQuery();
             if (m_CollisionCarQuery == default || m_CollisionCarQuery.IsEmptyIgnoreFilter)
+            {
+                if (debugEnabled)
+                    DirectDriveRuntime.ClearCollisionDebug();
+
                 return false;
+            }
 
             Vector3 travel = position - previousPosition;
             if (travel.sqrMagnitude < kVehicleBumperSweepMinTravelSq)
+            {
+                if (debugEnabled && TryGetVehicleCollisionShape(car, position, rotation, out VehicleCollisionShape parkedShape))
+                    PublishCollisionDebug(parkedShape, default, false, Entity.Null, false, "no sweep: car barely moved", parkedShape.Body.Center, parkedShape.Body.Center);
+                else if (debugEnabled)
+                    DirectDriveRuntime.ClearCollisionDebug();
+
                 return false;
+            }
 
             if (!TryGetVehicleCollisionShape(car, previousPosition, rotation, out VehicleCollisionShape previousSelfShape) ||
                 !TryGetVehicleCollisionShape(car, position, rotation, out VehicleCollisionShape selfShape))
             {
+                if (debugEnabled)
+                    DirectDriveRuntime.ClearCollisionDebug();
+
                 return false;
             }
 
@@ -78,6 +100,12 @@ namespace BetaTestDrivingMod
             float bestHitT = 2f;
             Vector3 bestNormal = Vector3.zero;
             Entity bestHit = Entity.Null;
+            VehicleCollisionShape bestHitShape = default;
+            bool debugHasTarget = false;
+            Entity debugTarget = Entity.Null;
+            VehicleCollisionShape debugTargetShape = default;
+            float debugTargetDistanceSq = float.MaxValue;
+            string debugStatus = "no nearby collision target";
             float scanRadiusSq = kVehicleCollisionScanRadius * kVehicleCollisionScanRadius;
             float framePoseScanRadius = kVehicleCollisionScanRadius + kVehicleCollisionFramePoseScanPadding;
             float framePoseScanRadiusSq = framePoseScanRadius * framePoseScanRadius;
@@ -111,10 +139,38 @@ namespace BetaTestDrivingMod
                 if (!TryGetVehicleCollisionShape(candidate, otherPosition, otherRotation, out VehicleCollisionShape otherShape))
                     continue;
 
+                if (!SweptShapeOverlapsVertically(previousSelfShape, selfShape, otherShape, kVehicleCollisionVerticalPadding))
+                {
+                    if (debugEnabled && debugStatus == "no nearby collision target")
+                        debugStatus = $"skipped {candidate.Index}: different road height";
+
+                    continue;
+                }
+
+                if (debugEnabled)
+                {
+                    float targetDistanceSq = (otherShape.Body.Center - selfShape.Body.Center).sqrMagnitude;
+                    if (targetDistanceSq < debugTargetDistanceSq)
+                    {
+                        debugHasTarget = true;
+                        debugTarget = candidate;
+                        debugTargetShape = otherShape;
+                        debugTargetDistanceSq = targetDistanceSq;
+                        debugStatus = $"target {candidate.Index}: outside swept broadphase";
+                    }
+                }
+
                 if (!IsSweptShapeNearShape(previousSelfShape, selfShape, otherShape, kVehicleCollisionBroadphasePadding))
                     continue;
 
-                if (!TrySweepVehicleBumper(previousSelfShape, selfShape, otherShape, forward, speedMps, out float hitT, out Vector3 normal))
+                if (debugEnabled && candidate == debugTarget)
+                    debugStatus = $"target {candidate.Index}: broadphase ok";
+
+                bool hitCandidate = TrySweepVehicleBumper(previousSelfShape, selfShape, otherShape, forward, speedMps, out float hitT, out Vector3 normal);
+                if (debugEnabled && candidate == debugTarget)
+                    debugStatus = hitCandidate ? $"target {candidate.Index}: shape-sweep hit" : $"target {candidate.Index}: shape-sweep miss";
+
+                if (!hitCandidate)
                     continue;
 
                 if (hitT < bestHitT)
@@ -123,17 +179,26 @@ namespace BetaTestDrivingMod
                     bestHitT = hitT;
                     bestNormal = normal;
                     bestHit = candidate;
+                    bestHitShape = otherShape;
                 }
             }
 
             if (!foundHit)
+            {
+                if (debugEnabled)
+                    PublishCollisionDebug(selfShape, debugTargetShape, debugHasTarget, debugTarget, false, debugStatus, previousSelfShape.Body.Center, selfShape.Body.Center);
+
                 return false;
+            }
 
             float contactT = Mathf.Clamp01(bestHitT - kVehicleBumperSweepContactBackoff);
             position = previousPosition + travel * contactT + bestNormal * kVehicleBumperSweepResolvePadding;
             hit = bestHit;
             m_LastVehicleCollisionTarget = bestHit;
             m_LastVehicleCollisionFrame = frame;
+            if (debugEnabled)
+                PublishCollisionDebug(selfShape, bestHitShape, true, bestHit, true, $"hit {bestHit.Index} t={bestHitT:0.00}", previousSelfShape.Body.Center, selfShape.Body.Center);
+
             if (frame == 0U || m_LastVehicleCollisionLogFrame == 0U || frame - m_LastVehicleCollisionLogFrame > 45U)
             {
                 Mod.log.Info($"Direct Drive vehicle collision resolved against {bestHit}; using fixed crashguard hitboxes.");
@@ -155,6 +220,30 @@ namespace BetaTestDrivingMod
 
             velocity = forward * speedMps;
             return true;
+        }
+
+        private void PublishCollisionDebug(VehicleCollisionShape selfShape, VehicleCollisionShape targetShape, bool hasTarget, Entity target, bool hit, string status, Vector3 sweepStart, Vector3 sweepEnd)
+        {
+            DirectDriveRuntime.SetCollisionDebug(
+                selfShape.Body.Center,
+                selfShape.Body.Right,
+                selfShape.Body.Forward,
+                selfShape.Body.HalfWidth,
+                selfShape.Body.HalfLength,
+                selfShape.MinHeight,
+                selfShape.MaxHeight,
+                sweepStart,
+                sweepEnd,
+                hasTarget,
+                hasTarget ? targetShape.Body.Center : Vector3.zero,
+                hasTarget ? targetShape.Body.Right : Vector3.right,
+                hasTarget ? targetShape.Body.Forward : Vector3.forward,
+                hasTarget ? targetShape.Body.HalfWidth : 0f,
+                hasTarget ? targetShape.Body.HalfLength : 0f,
+                hasTarget ? targetShape.MinHeight : 0f,
+                hasTarget ? targetShape.MaxHeight : 1.5f,
+                hit,
+                hasTarget && target != Entity.Null ? $"{status} entity={target.Index}" : status);
         }
 
         private void RefreshVehicleCollisionCandidateCache(Entity car, Vector3 position, float cacheRadiusSq)
@@ -224,14 +313,21 @@ namespace BetaTestDrivingMod
                 All = new[]
                 {
                     ComponentType.ReadOnly<Car>(),
+                    ComponentType.ReadOnly<CarNavigation>(),
+                    ComponentType.ReadOnly<CarCurrentLane>(),
                     ComponentType.ReadOnly<ObjectTransform>(),
-                    ComponentType.ReadOnly<PrefabRef>()
+                    ComponentType.ReadOnly<Moving>(),
+                    ComponentType.ReadOnly<PrefabRef>(),
+                    ComponentType.ReadOnly<TransformFrame>()
                 },
                 None = new[]
                 {
                     ComponentType.ReadOnly<Deleted>(),
                     ComponentType.ReadOnly<Temp>(),
+                    ComponentType.ReadOnly<TripSource>(),
+                    ComponentType.ReadOnly<ParkedCar>(),
                     ComponentType.ReadOnly<Unspawned>(),
+                    ComponentType.ReadOnly<Destroyed>(),
                     ComponentType.ReadOnly<Bicycle>()
                 }
             });
@@ -246,6 +342,54 @@ namespace BetaTestDrivingMod
                 return false;
 
             rotation = LevelRotation(fallbackRotation);
+            if (!EntityManager.HasBuffer<TransformFrame>(vehicle))
+                return false;
+
+            DynamicBuffer<TransformFrame> frames = EntityManager.GetBuffer<TransformFrame>(vehicle, true);
+            if (frames.Length == 0)
+                return false;
+
+            try
+            {
+                UpdateFrame updateFrame = EntityManager.GetSharedComponentManaged<UpdateFrame>(vehicle);
+                uint simulationFrame = m_SimulationSystem != null ? m_SimulationSystem.frameIndex : 0U;
+                ObjectInterpolateSystem.CalculateUpdateFrames(
+                    simulationFrame,
+                    0f,
+                    updateFrame.m_Index,
+                    out uint updateFrameA,
+                    out uint updateFrameB,
+                    out float framePosition);
+
+                TransformFrame frameA = frames[Mathf.Clamp((int)updateFrameA, 0, frames.Length - 1)];
+                TransformFrame frameB = frames[Mathf.Clamp((int)updateFrameB, 0, frames.Length - 1)];
+                Vector3 framePositionA = ToUnityVector(frameA.m_Position);
+                Vector3 framePositionB = ToUnityVector(frameB.m_Position);
+                Quaternion frameRotationA = ToUnityQuaternion(frameA.m_Rotation);
+                Quaternion frameRotationB = ToUnityQuaternion(frameB.m_Rotation);
+                if (!IsFinite(framePositionA) ||
+                    !IsFinite(framePositionB) ||
+                    !IsFinite(frameRotationA) ||
+                    !IsFinite(frameRotationB))
+                {
+                    return false;
+                }
+
+                Vector3 visualPosition = Vector3.Lerp(framePositionA, framePositionB, Mathf.Clamp01(framePosition));
+                Quaternion visualRotation = Quaternion.Slerp(frameRotationA, frameRotationB, Mathf.Clamp01(framePosition));
+                if (IsFinite(visualPosition) &&
+                    IsFinite(visualRotation) &&
+                    (visualPosition - position).sqrMagnitude <= kVehicleCollisionFramePoseMaxDistanceSq)
+                {
+                    position = visualPosition;
+                    rotation = LevelRotation(visualRotation);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -505,6 +649,9 @@ namespace BetaTestDrivingMod
 
         private static bool IsSweptShapeNearShape(VehicleCollisionShape previousShape, VehicleCollisionShape currentShape, VehicleCollisionShape targetShape, float padding)
         {
+            if (!SweptShapeOverlapsVertically(previousShape, currentShape, targetShape, kVehicleCollisionVerticalPadding))
+                return false;
+
             Vector3 sweepCenter = (previousShape.Body.Center + currentShape.Body.Center) * 0.5f;
             Vector3 sweepDelta = currentShape.Body.Center - previousShape.Body.Center;
             sweepDelta.y = 0f;
@@ -520,6 +667,9 @@ namespace BetaTestDrivingMod
         {
             hitT = 2f;
             normal = Vector3.zero;
+            if (!SweptShapeOverlapsVertically(previousSelfShape, selfShape, targetShape, kVehicleCollisionVerticalPadding))
+                return false;
+
             bool reversing = speedMps < -0.05f;
             Vector3 bumperForward = reversing ? -forward : forward;
             Vector3 right = selfShape.Body.Right;
@@ -538,6 +688,15 @@ namespace BetaTestDrivingMod
             }
 
             return hit;
+        }
+
+        private static bool SweptShapeOverlapsVertically(VehicleCollisionShape previousShape, VehicleCollisionShape currentShape, VehicleCollisionShape targetShape, float padding)
+        {
+            float selfMin = Mathf.Min(previousShape.Body.Center.y + previousShape.MinHeight, currentShape.Body.Center.y + currentShape.MinHeight) - padding;
+            float selfMax = Mathf.Max(previousShape.Body.Center.y + previousShape.MaxHeight, currentShape.Body.Center.y + currentShape.MaxHeight) + padding;
+            float targetMin = targetShape.Body.Center.y + targetShape.MinHeight - padding;
+            float targetMax = targetShape.Body.Center.y + targetShape.MaxHeight + padding;
+            return selfMin <= targetMax && targetMin <= selfMax;
         }
 
         private static void TrySweepBumperProbe(Vector3 start, Vector3 end, VehicleCollisionBox target, ref bool hit, ref float bestT, ref Vector3 bestNormal)

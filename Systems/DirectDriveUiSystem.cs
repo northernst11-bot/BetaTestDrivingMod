@@ -1,7 +1,10 @@
 using System;
 using Colossal.UI.Binding;
 using Game;
+using Game.Tools;
 using Game.UI;
+using Game.UI.InGame;
+using Unity.Entities;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -11,6 +14,8 @@ namespace BetaTestDrivingMod
     {
         private const string kGroup = "betatestdrivingmod";
 
+        private ToolSystem m_ToolSystem;
+        private SelectedInfoUISystem m_SelectedInfo;
         private ValueBinding<bool> m_PanelVisible;
         private ValueBinding<bool> m_IsDriving;
         private ValueBinding<string> m_StatusText;
@@ -28,6 +33,10 @@ namespace BetaTestDrivingMod
         private ValueBinding<bool> m_RoadHeightAssist;
         private ValueBinding<bool> m_FreezeVanillaNavigation;
         private ValueBinding<bool> m_VehicleCollisionEnabled;
+        private ValueBinding<bool> m_RoadOnlyTrafficPresence;
+        private ValueBinding<bool> m_TrafficPresenceHaloEnabled;
+        private ValueBinding<bool> m_VisualCollisionDebugEnabled;
+        private ValueBinding<bool> m_TrafficPresenceDebugEnabled;
         private ValueBinding<float> m_CollisionRetainedSpeed;
         private ValueBinding<bool> m_ChaseCameraEnabled;
         private ValueBinding<string> m_ChaseCameraStatus;
@@ -48,8 +57,18 @@ namespace BetaTestDrivingMod
         private ValueBinding<float> m_ChaseCameraDistance;
         private ValueBinding<float> m_ChaseCameraHeight;
         private ValueBinding<float> m_ChaseCameraLookAhead;
+        private ValueBinding<string> m_ToggleDrivingKey;
+        private ValueBinding<string> m_ThrottleKey;
+        private ValueBinding<string> m_BrakeKey;
+        private ValueBinding<string> m_SteerLeftKey;
+        private ValueBinding<string> m_SteerRightKey;
+        private ValueBinding<string> m_PanelKey;
+        private ValueBinding<string> m_ChaseCameraKey;
+        private ValueBinding<string> m_CollisionDebugKey;
+        private ValueBinding<string> m_TrafficPresenceDebugKey;
 
         private float m_NextStatusUpdate;
+        private int m_InfoPanelSuppressLogCooldown;
 
         public override GameMode gameMode => GameMode.Game;
 
@@ -58,6 +77,8 @@ namespace BetaTestDrivingMod
         {
             base.OnCreate();
             DirectDriveRuntime.ApplyPublicSafeDefaults();
+            m_ToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
+            m_SelectedInfo = World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
 
             AddBinding(m_PanelVisible = new ValueBinding<bool>(kGroup, "PanelVisible", DirectDriveRuntime.PanelVisible, null, null));
             AddBinding(m_IsDriving = new ValueBinding<bool>(kGroup, "IsDriving", DirectDriveRuntime.IsDriving, null, null));
@@ -76,6 +97,10 @@ namespace BetaTestDrivingMod
             AddBinding(m_RoadHeightAssist = new ValueBinding<bool>(kGroup, "RoadHeightAssist", DirectDriveRuntime.RoadHeightAssist, null, null));
             AddBinding(m_FreezeVanillaNavigation = new ValueBinding<bool>(kGroup, "FreezeVanillaNavigation", DirectDriveRuntime.FreezeVanillaNavigation, null, null));
             AddBinding(m_VehicleCollisionEnabled = new ValueBinding<bool>(kGroup, "VehicleCollisionEnabled", DirectDriveRuntime.VehicleCollisionEnabled, null, null));
+            AddBinding(m_RoadOnlyTrafficPresence = new ValueBinding<bool>(kGroup, "RoadOnlyTrafficPresence", DirectDriveRuntime.RoadOnlyTrafficPresence, null, null));
+            AddBinding(m_TrafficPresenceHaloEnabled = new ValueBinding<bool>(kGroup, "TrafficPresenceHaloEnabled", DirectDriveRuntime.TrafficPresenceHaloEnabled, null, null));
+            AddBinding(m_VisualCollisionDebugEnabled = new ValueBinding<bool>(kGroup, "VisualCollisionDebugEnabled", DirectDriveRuntime.VisualCollisionDebugEnabled, null, null));
+            AddBinding(m_TrafficPresenceDebugEnabled = new ValueBinding<bool>(kGroup, "TrafficPresenceDebugEnabled", DirectDriveRuntime.TrafficPresenceDebugEnabled, null, null));
             AddBinding(m_CollisionRetainedSpeed = new ValueBinding<float>(kGroup, "CollisionRetainedSpeed", DirectDriveRuntime.CollisionRetainedSpeed, null, null));
             AddBinding(m_ChaseCameraEnabled = new ValueBinding<bool>(kGroup, "ChaseCameraEnabled", DirectDriveRuntime.ChaseCameraEnabled, null, null));
             AddBinding(m_ChaseCameraStatus = new ValueBinding<string>(kGroup, "ChaseCameraStatus", DirectDriveRuntime.ChaseCameraStatus, null, null));
@@ -96,6 +121,15 @@ namespace BetaTestDrivingMod
             AddBinding(m_ChaseCameraDistance = new ValueBinding<float>(kGroup, "ChaseCameraDistance", DirectDriveRuntime.ChaseCameraDistance, null, null));
             AddBinding(m_ChaseCameraHeight = new ValueBinding<float>(kGroup, "ChaseCameraHeight", DirectDriveRuntime.ChaseCameraHeight, null, null));
             AddBinding(m_ChaseCameraLookAhead = new ValueBinding<float>(kGroup, "ChaseCameraLookAhead", DirectDriveRuntime.ChaseCameraLookAhead, null, null));
+            AddBinding(m_ToggleDrivingKey = new ValueBinding<string>(kGroup, "ToggleDrivingKey", DirectDriveRuntime.ToggleDrivingKey, null, null));
+            AddBinding(m_ThrottleKey = new ValueBinding<string>(kGroup, "ThrottleKey", DirectDriveRuntime.ThrottleKey, null, null));
+            AddBinding(m_BrakeKey = new ValueBinding<string>(kGroup, "BrakeKey", DirectDriveRuntime.BrakeKey, null, null));
+            AddBinding(m_SteerLeftKey = new ValueBinding<string>(kGroup, "SteerLeftKey", DirectDriveRuntime.SteerLeftKey, null, null));
+            AddBinding(m_SteerRightKey = new ValueBinding<string>(kGroup, "SteerRightKey", DirectDriveRuntime.SteerRightKey, null, null));
+            AddBinding(m_PanelKey = new ValueBinding<string>(kGroup, "PanelKey", DirectDriveRuntime.PanelKey, null, null));
+            AddBinding(m_ChaseCameraKey = new ValueBinding<string>(kGroup, "ChaseCameraKey", DirectDriveRuntime.ChaseCameraKey, null, null));
+            AddBinding(m_CollisionDebugKey = new ValueBinding<string>(kGroup, "CollisionDebugKey", DirectDriveRuntime.CollisionDebugKey, null, null));
+            AddBinding(m_TrafficPresenceDebugKey = new ValueBinding<string>(kGroup, "TrafficPresenceDebugKey", DirectDriveRuntime.TrafficPresenceDebugKey, null, null));
 
             AddBinding(new TriggerBinding(kGroup, "TogglePanel", new Action(TogglePanel)));
             AddBinding(new TriggerBinding(kGroup, "ToggleHud", new Action(TogglePanel)));
@@ -108,6 +142,10 @@ namespace BetaTestDrivingMod
             AddBinding(new TriggerBinding<bool>(kGroup, "SetRoadHeightAssist", new Action<bool>(SetRoadHeightAssist), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetFreezeVanillaNavigation", new Action<bool>(SetFreezeVanillaNavigation), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetVehicleCollisionEnabled", new Action<bool>(SetVehicleCollisionEnabled), null));
+            AddBinding(new TriggerBinding<bool>(kGroup, "SetRoadOnlyTrafficPresence", new Action<bool>(SetRoadOnlyTrafficPresence), null));
+            AddBinding(new TriggerBinding<bool>(kGroup, "SetTrafficPresenceHaloEnabled", new Action<bool>(SetTrafficPresenceHaloEnabled), null));
+            AddBinding(new TriggerBinding<bool>(kGroup, "SetVisualCollisionDebugEnabled", new Action<bool>(SetVisualCollisionDebugEnabled), null));
+            AddBinding(new TriggerBinding<bool>(kGroup, "SetTrafficPresenceDebugEnabled", new Action<bool>(SetTrafficPresenceDebugEnabled), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetChaseCameraEnabled", new Action<bool>(SetChaseCameraEnabled), null));
             AddBinding(new TriggerBinding<bool>(kGroup, "SetPoliceChaseEnabled", new Action<bool>(SetPoliceChaseEnabled), null));
             AddBinding(new TriggerBinding<float>(kGroup, "SetTargetSpeedMph", new Action<float>(SetTargetSpeedMph), null));
@@ -123,6 +161,15 @@ namespace BetaTestDrivingMod
             AddBinding(new TriggerBinding<float>(kGroup, "SetChaseCameraHeight", new Action<float>(SetChaseCameraHeight), null));
             AddBinding(new TriggerBinding<float>(kGroup, "SetChaseCameraLookAhead", new Action<float>(SetChaseCameraLookAhead), null));
             AddBinding(new TriggerBinding<float>(kGroup, "SetCollisionRetainedSpeed", new Action<float>(SetCollisionRetainedSpeed), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetToggleDrivingKey", new Action<string>(SetToggleDrivingKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetThrottleKey", new Action<string>(SetThrottleKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetBrakeKey", new Action<string>(SetBrakeKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetSteerLeftKey", new Action<string>(SetSteerLeftKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetSteerRightKey", new Action<string>(SetSteerRightKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetPanelKey", new Action<string>(SetPanelKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetChaseCameraKey", new Action<string>(SetChaseCameraKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetCollisionDebugKey", new Action<string>(SetCollisionDebugKey), null));
+            AddBinding(new TriggerBinding<string>(kGroup, "SetTrafficPresenceDebugKey", new Action<string>(SetTrafficPresenceDebugKey), null));
         }
 
         [Preserve]
@@ -130,11 +177,37 @@ namespace BetaTestDrivingMod
         {
             base.OnUpdate();
 
+            if (DirectDriveRuntime.IsDriving)
+                HideInfoPanelSelection();
+
             if (UnityEngine.Time.unscaledTime < m_NextStatusUpdate)
                 return;
 
             m_NextStatusUpdate = UnityEngine.Time.unscaledTime + 0.08f;
             UpdateBindings();
+        }
+
+        private void HideInfoPanelSelection()
+        {
+            try
+            {
+                if (m_SelectedInfo != null && m_SelectedInfo.selectedEntity != Entity.Null)
+                    m_SelectedInfo.SetSelection(Entity.Null);
+
+                if (m_ToolSystem != null && m_ToolSystem.selected != Entity.Null)
+                {
+                    m_ToolSystem.selected = Entity.Null;
+                    m_ToolSystem.selectedIndex = -1;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (m_InfoPanelSuppressLogCooldown-- <= 0)
+                {
+                    Mod.log.Warn($"Direct Drive info-panel suppression failed: {ex.GetType().Name}: {ex.Message}");
+                    m_InfoPanelSuppressLogCooldown = 180;
+                }
+            }
         }
 
         private void TogglePanel()
@@ -176,6 +249,39 @@ namespace BetaTestDrivingMod
         private void SetVehicleCollisionEnabled(bool value)
         {
             DirectDriveRuntime.VehicleCollisionEnabled = value;
+            if (!value)
+                DirectDriveRuntime.ClearCollisionDebug();
+
+            UpdateBindings();
+        }
+
+        private void SetRoadOnlyTrafficPresence(bool value)
+        {
+            DirectDriveRuntime.RoadOnlyTrafficPresence = value;
+            if (value)
+                DirectDriveRuntime.ClearTrafficPresenceDebug();
+
+            UpdateBindings();
+        }
+
+        private void SetTrafficPresenceHaloEnabled(bool value)
+        {
+            DirectDriveRuntime.TrafficPresenceHaloEnabled = value;
+            if (!value)
+                DirectDriveRuntime.ClearTrafficPresenceDebug();
+
+            UpdateBindings();
+        }
+
+        private void SetVisualCollisionDebugEnabled(bool value)
+        {
+            DirectDriveRuntime.SetVisualCollisionDebugEnabled(value);
+            UpdateBindings();
+        }
+
+        private void SetTrafficPresenceDebugEnabled(bool value)
+        {
+            DirectDriveRuntime.SetTrafficPresenceDebugEnabled(value);
             UpdateBindings();
         }
 
@@ -269,6 +375,60 @@ namespace BetaTestDrivingMod
             UpdateBindings();
         }
 
+        private void SetToggleDrivingKey(string value)
+        {
+            DirectDriveRuntime.SetToggleDrivingKey(value);
+            UpdateBindings();
+        }
+
+        private void SetThrottleKey(string value)
+        {
+            DirectDriveRuntime.SetThrottleKey(value);
+            UpdateBindings();
+        }
+
+        private void SetBrakeKey(string value)
+        {
+            DirectDriveRuntime.SetBrakeKey(value);
+            UpdateBindings();
+        }
+
+        private void SetSteerLeftKey(string value)
+        {
+            DirectDriveRuntime.SetSteerLeftKey(value);
+            UpdateBindings();
+        }
+
+        private void SetSteerRightKey(string value)
+        {
+            DirectDriveRuntime.SetSteerRightKey(value);
+            UpdateBindings();
+        }
+
+        private void SetPanelKey(string value)
+        {
+            DirectDriveRuntime.SetPanelKey(value);
+            UpdateBindings();
+        }
+
+        private void SetChaseCameraKey(string value)
+        {
+            DirectDriveRuntime.SetChaseCameraKey(value);
+            UpdateBindings();
+        }
+
+        private void SetCollisionDebugKey(string value)
+        {
+            DirectDriveRuntime.SetCollisionDebugKey(value);
+            UpdateBindings();
+        }
+
+        private void SetTrafficPresenceDebugKey(string value)
+        {
+            DirectDriveRuntime.SetTrafficPresenceDebugKey(value);
+            UpdateBindings();
+        }
+
         private static float AcceptFinite(float value, float fallback)
         {
             if (float.IsNaN(value) || float.IsInfinity(value))
@@ -296,6 +456,10 @@ namespace BetaTestDrivingMod
             m_RoadHeightAssist.Update(DirectDriveRuntime.RoadHeightAssist);
             m_FreezeVanillaNavigation.Update(DirectDriveRuntime.FreezeVanillaNavigation);
             m_VehicleCollisionEnabled.Update(DirectDriveRuntime.VehicleCollisionEnabled);
+            m_RoadOnlyTrafficPresence.Update(DirectDriveRuntime.RoadOnlyTrafficPresence);
+            m_TrafficPresenceHaloEnabled.Update(DirectDriveRuntime.TrafficPresenceHaloEnabled);
+            m_VisualCollisionDebugEnabled.Update(DirectDriveRuntime.VisualCollisionDebugEnabled);
+            m_TrafficPresenceDebugEnabled.Update(DirectDriveRuntime.TrafficPresenceDebugEnabled);
             m_CollisionRetainedSpeed.Update(DirectDriveRuntime.CollisionRetainedSpeed);
             m_ChaseCameraEnabled.Update(DirectDriveRuntime.ChaseCameraEnabled);
             m_ChaseCameraStatus.Update(DirectDriveRuntime.ChaseCameraStatus ?? "");
@@ -316,6 +480,15 @@ namespace BetaTestDrivingMod
             m_ChaseCameraDistance.Update(DirectDriveRuntime.ChaseCameraDistance);
             m_ChaseCameraHeight.Update(DirectDriveRuntime.ChaseCameraHeight);
             m_ChaseCameraLookAhead.Update(DirectDriveRuntime.ChaseCameraLookAhead);
+            m_ToggleDrivingKey.Update(DirectDriveRuntime.ToggleDrivingKey ?? "");
+            m_ThrottleKey.Update(DirectDriveRuntime.ThrottleKey ?? "");
+            m_BrakeKey.Update(DirectDriveRuntime.BrakeKey ?? "");
+            m_SteerLeftKey.Update(DirectDriveRuntime.SteerLeftKey ?? "");
+            m_SteerRightKey.Update(DirectDriveRuntime.SteerRightKey ?? "");
+            m_PanelKey.Update(DirectDriveRuntime.PanelKey ?? "");
+            m_ChaseCameraKey.Update(DirectDriveRuntime.ChaseCameraKey ?? "");
+            m_CollisionDebugKey.Update(DirectDriveRuntime.CollisionDebugKey ?? "");
+            m_TrafficPresenceDebugKey.Update(DirectDriveRuntime.TrafficPresenceDebugKey ?? "");
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using Unity.Entities;
 using UnityEngine;
 
@@ -19,6 +20,11 @@ namespace BetaTestDrivingMod
     internal static class DirectDriveRuntime
     {
         private const float kInputStaleSeconds = 0.35f;
+        private const string kKeyBindingPrefsPrefix = "BetaTestDrivingMod.DirectDrive.Key.";
+        internal const int kMaxTrafficPresenceDebugSegments = 6;
+        internal const int kTrafficPresenceDebugPrimary = 0;
+        internal const int kTrafficPresenceDebugChangeLane = 1;
+        internal const int kTrafficPresenceDebugHalo = 2;
 
         private static DirectDriveHudBehaviour s_Hud;
         private static bool s_ToggleRequested;
@@ -28,6 +34,17 @@ namespace BetaTestDrivingMod
         private static uint s_InputSequence;
         private static bool s_BrakePressedLatched;
         private static bool s_PoliceChaseTestRequested;
+        private static bool s_KeyBindingsLoaded;
+        private static int s_BlockHotkeysUntilFrame = -1;
+        private static KeyCode s_ToggleDrivingKeyCode = KeyCode.V;
+        private static KeyCode s_ThrottleKeyCode = KeyCode.W;
+        private static KeyCode s_BrakeKeyCode = KeyCode.S;
+        private static KeyCode s_SteerLeftKeyCode = KeyCode.A;
+        private static KeyCode s_SteerRightKeyCode = KeyCode.D;
+        private static KeyCode s_PanelKeyCode = KeyCode.F8;
+        private static KeyCode s_ChaseCameraKeyCode = KeyCode.F7;
+        private static KeyCode s_CollisionDebugKeyCode = KeyCode.Keypad0;
+        private static KeyCode s_TrafficPresenceDebugKeyCode = KeyCode.Keypad9;
 
         internal static float InputThrottle { get; private set; }
         internal static float InputBrake { get; private set; }
@@ -61,6 +78,10 @@ namespace BetaTestDrivingMod
         internal static bool RoadHeightAssist { get; set; } = true;
         internal static bool FreezeVanillaNavigation { get; set; } = true;
         internal static bool VehicleCollisionEnabled { get; set; } = true;
+        internal static bool RoadOnlyTrafficPresence { get; set; } = true;
+        internal static bool TrafficPresenceHaloEnabled { get; set; }
+        internal static bool VisualCollisionDebugEnabled { get; set; }
+        internal static bool TrafficPresenceDebugEnabled { get; set; }
         internal static float CollisionRetainedSpeed { get; set; } = 0.35f;
         internal static bool ChaseCameraEnabled { get; set; } = true;
         internal static float ChaseCameraDistance { get; set; } = 10.5f;
@@ -74,6 +95,54 @@ namespace BetaTestDrivingMod
         internal static int RedLightViolations { get; private set; }
         internal static bool HudVisible { get; private set; }
         internal static bool PanelVisible { get; private set; }
+        internal static bool HasCollisionDebug { get; private set; }
+        internal static bool CollisionDebugHasTarget { get; private set; }
+        internal static bool CollisionDebugHit { get; private set; }
+        internal static Vector3 CollisionDebugSelfCenter { get; private set; }
+        internal static Vector3 CollisionDebugSelfRight { get; private set; } = Vector3.right;
+        internal static Vector3 CollisionDebugSelfForward { get; private set; } = Vector3.forward;
+        internal static float CollisionDebugSelfHalfWidth { get; private set; }
+        internal static float CollisionDebugSelfHalfLength { get; private set; }
+        internal static float CollisionDebugSelfMinHeight { get; private set; }
+        internal static float CollisionDebugSelfMaxHeight { get; private set; } = 1.5f;
+        internal static Vector3 CollisionDebugTargetCenter { get; private set; }
+        internal static Vector3 CollisionDebugTargetRight { get; private set; } = Vector3.right;
+        internal static Vector3 CollisionDebugTargetForward { get; private set; } = Vector3.forward;
+        internal static float CollisionDebugTargetHalfWidth { get; private set; }
+        internal static float CollisionDebugTargetHalfLength { get; private set; }
+        internal static float CollisionDebugTargetMinHeight { get; private set; }
+        internal static float CollisionDebugTargetMaxHeight { get; private set; } = 1.5f;
+        internal static Vector3 CollisionDebugSweepStart { get; private set; }
+        internal static Vector3 CollisionDebugSweepEnd { get; private set; }
+        internal static string CollisionDebugStatus { get; private set; } = "";
+        internal static bool HasTrafficPresenceTarget { get; private set; }
+        internal static Entity TrafficPresenceLane { get; private set; } = Entity.Null;
+        internal static Entity TrafficPresenceChangeLane { get; private set; } = Entity.Null;
+        internal static float TrafficPresenceCurveStart { get; private set; }
+        internal static float TrafficPresenceCurveEnd { get; private set; }
+        internal static float TrafficPresenceCurveT { get; private set; }
+        internal static float TrafficPresenceCurveSign { get; private set; } = 1f;
+        internal static float TrafficPresenceRearSpan { get; private set; }
+        internal static float TrafficPresenceForwardSpan { get; private set; }
+        internal static bool HasTrafficPresenceDebug { get; private set; }
+        internal static int TrafficPresenceDebugSegmentCount { get; private set; }
+        internal static Vector3[] TrafficPresenceDebugStarts { get; } = new Vector3[kMaxTrafficPresenceDebugSegments];
+        internal static Vector3[] TrafficPresenceDebugEnds { get; } = new Vector3[kMaxTrafficPresenceDebugSegments];
+        internal static Vector3[] TrafficPresenceDebugLabels { get; } = new Vector3[kMaxTrafficPresenceDebugSegments];
+        internal static string[] TrafficPresenceDebugTexts { get; } = new string[kMaxTrafficPresenceDebugSegments];
+        internal static int[] TrafficPresenceDebugKinds { get; } = new int[kMaxTrafficPresenceDebugSegments];
+        internal static string TrafficPresenceDebugStatus { get; private set; } = "";
+        internal static string TrafficGuardDebugStatus { get; private set; } = "";
+        internal static string ToggleDrivingKey { get; private set; } = "V";
+        internal static string ThrottleKey { get; private set; } = "W";
+        internal static string BrakeKey { get; private set; } = "S";
+        internal static string SteerLeftKey { get; private set; } = "A";
+        internal static string SteerRightKey { get; private set; } = "D";
+        internal static string PanelKey { get; private set; } = "F8";
+        internal static string ChaseCameraKey { get; private set; } = "F7";
+        internal static string CollisionDebugKey { get; private set; } = "Keypad0";
+        internal static string TrafficPresenceDebugKey { get; private set; } = "Keypad9";
+        internal static string ReadyStatusText => $"Select or look near a car, then press {ToggleDrivingKey}.";
 
         internal static void SanitizeDrivingTuning()
         {
@@ -105,7 +174,7 @@ namespace BetaTestDrivingMod
                 return;
 
             GameObject hud = new GameObject("Beta Test Driving Mod (Stable) HUD");
-            Object.DontDestroyOnLoad(hud);
+            UnityEngine.Object.DontDestroyOnLoad(hud);
             s_Hud = hud.AddComponent<DirectDriveHudBehaviour>();
         }
 
@@ -117,6 +186,30 @@ namespace BetaTestDrivingMod
         internal static void TogglePanel()
         {
             PanelVisible = !PanelVisible;
+        }
+
+        internal static void ToggleVisualCollisionDebug()
+        {
+            SetVisualCollisionDebugEnabled(!VisualCollisionDebugEnabled);
+        }
+
+        internal static void SetVisualCollisionDebugEnabled(bool enabled)
+        {
+            VisualCollisionDebugEnabled = enabled;
+            if (!enabled)
+                ClearCollisionDebug();
+        }
+
+        internal static void ToggleTrafficPresenceDebug()
+        {
+            SetTrafficPresenceDebugEnabled(!TrafficPresenceDebugEnabled);
+        }
+
+        internal static void SetTrafficPresenceDebugEnabled(bool enabled)
+        {
+            TrafficPresenceDebugEnabled = enabled;
+            if (!enabled)
+                ClearTrafficPresenceDebug();
         }
 
         internal static void SetPanelVisible(bool visible)
@@ -163,17 +256,19 @@ namespace BetaTestDrivingMod
 
         internal static void SampleUnityInput()
         {
+            EnsureKeyBindingsLoaded();
+
             int frame = Time.frameCount;
             if (s_LastSampleFrame == frame)
                 return;
 
             s_LastSampleFrame = frame;
 
-            bool throttleHeld = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
-            bool brakeHeld = Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow);
-            bool leftHeld = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow);
-            bool rightHeld = Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow);
-            bool brakePressed = Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow);
+            bool throttleHeld = IsKeyHeld(s_ThrottleKeyCode, KeyCode.UpArrow);
+            bool brakeHeld = IsKeyHeld(s_BrakeKeyCode, KeyCode.DownArrow);
+            bool leftHeld = IsKeyHeld(s_SteerLeftKeyCode, KeyCode.LeftArrow);
+            bool rightHeld = IsKeyHeld(s_SteerRightKeyCode, KeyCode.RightArrow);
+            bool brakePressed = IsKeyPressed(s_BrakeKeyCode, KeyCode.DownArrow);
 
             bool wasBrakeHeld = InputBrake > 0.1f;
             InputThrottle = throttleHeld ? 1f : 0f;
@@ -188,17 +283,160 @@ namespace BetaTestDrivingMod
             if (brakePressed || (brakeHeld && !wasBrakeHeld))
                 s_BrakePressedLatched = true;
 
-            if (Input.GetKeyDown(KeyCode.V))
+            bool hotkeysAllowed = frame > s_BlockHotkeysUntilFrame;
+            if (hotkeysAllowed && IsKeyPressed(s_ToggleDrivingKeyCode))
                 RequestToggle();
 
-            if (Input.GetKeyDown(KeyCode.F8))
+            if (hotkeysAllowed && IsKeyPressed(s_PanelKeyCode))
                 ToggleHud();
 
-            if (Input.GetKeyDown(KeyCode.F7))
+            if (hotkeysAllowed && IsKeyPressed(s_CollisionDebugKeyCode))
+                ToggleVisualCollisionDebug();
+
+            if (hotkeysAllowed && IsKeyPressed(s_TrafficPresenceDebugKeyCode))
+                ToggleTrafficPresenceDebug();
+
+            if (hotkeysAllowed && IsKeyPressed(s_ChaseCameraKeyCode))
                 ChaseCameraEnabled = !ChaseCameraEnabled;
 
             if (Input.GetKeyDown(KeyCode.F9))
                 RequestPoliceChaseTest();
+        }
+
+        private static bool IsKeyHeld(KeyCode primary, KeyCode fallback = KeyCode.None)
+        {
+            return (primary != KeyCode.None && Input.GetKey(primary)) ||
+                   (fallback != KeyCode.None && fallback != primary && Input.GetKey(fallback));
+        }
+
+        private static bool IsKeyPressed(KeyCode primary, KeyCode fallback = KeyCode.None)
+        {
+            return (primary != KeyCode.None && Input.GetKeyDown(primary)) ||
+                   (fallback != KeyCode.None && fallback != primary && Input.GetKeyDown(fallback));
+        }
+
+        internal static bool SetToggleDrivingKey(string value) => SetKeyBinding("ToggleDriving", value, ref s_ToggleDrivingKeyCode, key => ToggleDrivingKey = key);
+        internal static bool SetThrottleKey(string value) => SetKeyBinding("Throttle", value, ref s_ThrottleKeyCode, key => ThrottleKey = key);
+        internal static bool SetBrakeKey(string value) => SetKeyBinding("Brake", value, ref s_BrakeKeyCode, key => BrakeKey = key);
+        internal static bool SetSteerLeftKey(string value) => SetKeyBinding("SteerLeft", value, ref s_SteerLeftKeyCode, key => SteerLeftKey = key);
+        internal static bool SetSteerRightKey(string value) => SetKeyBinding("SteerRight", value, ref s_SteerRightKeyCode, key => SteerRightKey = key);
+        internal static bool SetPanelKey(string value) => SetKeyBinding("Panel", value, ref s_PanelKeyCode, key => PanelKey = key);
+        internal static bool SetChaseCameraKey(string value) => SetKeyBinding("ChaseCamera", value, ref s_ChaseCameraKeyCode, key => ChaseCameraKey = key);
+        internal static bool SetCollisionDebugKey(string value) => SetKeyBinding("CollisionDebug", value, ref s_CollisionDebugKeyCode, key => CollisionDebugKey = key);
+        internal static bool SetTrafficPresenceDebugKey(string value) => SetKeyBinding("TrafficPresenceDebug", value, ref s_TrafficPresenceDebugKeyCode, key => TrafficPresenceDebugKey = key);
+
+        internal static void EnsureKeyBindingsLoaded()
+        {
+            if (s_KeyBindingsLoaded)
+                return;
+
+            s_KeyBindingsLoaded = true;
+            LoadKeyBinding("ToggleDriving", ref s_ToggleDrivingKeyCode, key => ToggleDrivingKey = key);
+            LoadKeyBinding("Throttle", ref s_ThrottleKeyCode, key => ThrottleKey = key);
+            LoadKeyBinding("Brake", ref s_BrakeKeyCode, key => BrakeKey = key);
+            LoadKeyBinding("SteerLeft", ref s_SteerLeftKeyCode, key => SteerLeftKey = key);
+            LoadKeyBinding("SteerRight", ref s_SteerRightKeyCode, key => SteerRightKey = key);
+            LoadKeyBinding("Panel", ref s_PanelKeyCode, key => PanelKey = key);
+            LoadKeyBinding("ChaseCamera", ref s_ChaseCameraKeyCode, key => ChaseCameraKey = key);
+            LoadKeyBinding("CollisionDebug", ref s_CollisionDebugKeyCode, key => CollisionDebugKey = key);
+            LoadKeyBinding("TrafficPresenceDebug", ref s_TrafficPresenceDebugKeyCode, key => TrafficPresenceDebugKey = key);
+            RefreshReadyStatus();
+        }
+
+        private static void LoadKeyBinding(string id, ref KeyCode target, Action<string> setDisplay)
+        {
+            string saved = PlayerPrefs.GetString(kKeyBindingPrefsPrefix + id, "");
+            if (!TryParseKeyCode(saved, out KeyCode keyCode))
+                return;
+
+            target = keyCode;
+            setDisplay(keyCode.ToString());
+        }
+
+        private static bool SetKeyBinding(string id, string value, ref KeyCode target, Action<string> setDisplay)
+        {
+            if (!TryParseKeyCode(value, out KeyCode keyCode))
+                return false;
+
+            target = keyCode;
+            setDisplay(keyCode.ToString());
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + id, keyCode.ToString());
+            PlayerPrefs.Save();
+            s_BlockHotkeysUntilFrame = Mathf.Max(s_BlockHotkeysUntilFrame, Time.frameCount + 2);
+            RefreshReadyStatus();
+            return true;
+        }
+
+        private static bool TryParseKeyCode(string value, out KeyCode keyCode)
+        {
+            keyCode = KeyCode.None;
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            string text = value.Trim();
+            if (text.Length == 1 && char.IsDigit(text[0]))
+                text = "Alpha" + text;
+            else if (string.Equals(text, "Ctrl", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(text, "Control", StringComparison.OrdinalIgnoreCase))
+                text = "LeftControl";
+            else if (string.Equals(text, "Alt", StringComparison.OrdinalIgnoreCase))
+                text = "LeftAlt";
+            else if (string.Equals(text, "Shift", StringComparison.OrdinalIgnoreCase))
+                text = "LeftShift";
+            else if (string.Equals(text, "Enter", StringComparison.OrdinalIgnoreCase))
+                text = "Return";
+            else if (string.Equals(text, "Esc", StringComparison.OrdinalIgnoreCase))
+                text = "Escape";
+
+            return Enum.TryParse(text, true, out keyCode) && keyCode != KeyCode.None;
+        }
+
+        private static void ResetKeyBindings()
+        {
+            s_ToggleDrivingKeyCode = KeyCode.V;
+            s_ThrottleKeyCode = KeyCode.W;
+            s_BrakeKeyCode = KeyCode.S;
+            s_SteerLeftKeyCode = KeyCode.A;
+            s_SteerRightKeyCode = KeyCode.D;
+            s_PanelKeyCode = KeyCode.F8;
+            s_ChaseCameraKeyCode = KeyCode.F7;
+            s_CollisionDebugKeyCode = KeyCode.Keypad0;
+            s_TrafficPresenceDebugKeyCode = KeyCode.Keypad9;
+            ToggleDrivingKey = s_ToggleDrivingKeyCode.ToString();
+            ThrottleKey = s_ThrottleKeyCode.ToString();
+            BrakeKey = s_BrakeKeyCode.ToString();
+            SteerLeftKey = s_SteerLeftKeyCode.ToString();
+            SteerRightKey = s_SteerRightKeyCode.ToString();
+            PanelKey = s_PanelKeyCode.ToString();
+            ChaseCameraKey = s_ChaseCameraKeyCode.ToString();
+            CollisionDebugKey = s_CollisionDebugKeyCode.ToString();
+            TrafficPresenceDebugKey = s_TrafficPresenceDebugKeyCode.ToString();
+            SaveDefaultKeyBindings();
+            RefreshReadyStatus();
+        }
+
+        private static void SaveDefaultKeyBindings()
+        {
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "ToggleDriving", ToggleDrivingKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "Throttle", ThrottleKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "Brake", BrakeKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "SteerLeft", SteerLeftKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "SteerRight", SteerRightKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "Panel", PanelKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "ChaseCamera", ChaseCameraKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "CollisionDebug", CollisionDebugKey);
+            PlayerPrefs.SetString(kKeyBindingPrefsPrefix + "TrafficPresenceDebug", TrafficPresenceDebugKey);
+            PlayerPrefs.Save();
+        }
+
+        private static void RefreshReadyStatus()
+        {
+            if (!IsDriving &&
+                (string.IsNullOrWhiteSpace(StatusText) ||
+                 StatusText.StartsWith("Select or look near a car", StringComparison.OrdinalIgnoreCase)))
+            {
+                StatusText = ReadyStatusText;
+            }
         }
 
         internal static DirectDriveInputFrame ConsumeDriveInput()
@@ -250,8 +488,12 @@ namespace BetaTestDrivingMod
             SpeedMph = 0f;
             Braking = false;
             ReverseReady = false;
-            StatusText = status ?? "Select or look near a car, then press V.";
+            StatusText = status ?? ReadyStatusText;
             ControlStatus = "Direct control ready";
+            ClearCollisionDebug();
+            ClearTrafficPresenceTarget();
+            ClearTrafficPresenceDebug();
+            ClearTrafficGuardDebug();
         }
 
         internal static void RecordRedLightViolation()
@@ -286,6 +528,10 @@ namespace BetaTestDrivingMod
             RoadHeightAssist = true;
             FreezeVanillaNavigation = true;
             VehicleCollisionEnabled = true;
+            RoadOnlyTrafficPresence = true;
+            TrafficPresenceHaloEnabled = false;
+            VisualCollisionDebugEnabled = false;
+            TrafficPresenceDebugEnabled = false;
             CollisionRetainedSpeed = 0.35f;
             ChaseCameraEnabled = true;
             ChaseCameraDistance = 10.5f;
@@ -295,18 +541,180 @@ namespace BetaTestDrivingMod
             PoliceChaseEnabled = false;
             s_PoliceChaseTestRequested = false;
             SetPoliceChase(false, "Police chase off", 0);
+            ResetKeyBindings();
+            ClearCollisionDebug();
+            ClearTrafficPresenceDebug();
+            ClearTrafficGuardDebug();
         }
 
         internal static void ApplyPublicSafeDefaults()
         {
+            EnsureKeyBindingsLoaded();
             RoadIntentAssist = true;
             RoadHeightAssist = true;
             FreezeVanillaNavigation = true;
             VehicleCollisionEnabled = true;
+            RoadOnlyTrafficPresence = true;
+            TrafficPresenceHaloEnabled = false;
             ChaseCameraEnabled = true;
             PoliceChaseEnabled = false;
             s_PoliceChaseTestRequested = false;
             SetPoliceChase(false, "Police chase off", 0);
+        }
+
+        internal static void SetCollisionDebug(
+            Vector3 selfCenter,
+            Vector3 selfRight,
+            Vector3 selfForward,
+            float selfHalfWidth,
+            float selfHalfLength,
+            float selfMinHeight,
+            float selfMaxHeight,
+            Vector3 sweepStart,
+            Vector3 sweepEnd,
+            bool hasTarget,
+            Vector3 targetCenter,
+            Vector3 targetRight,
+            Vector3 targetForward,
+            float targetHalfWidth,
+            float targetHalfLength,
+            float targetMinHeight,
+            float targetMaxHeight,
+            bool hit,
+            string status)
+        {
+            HasCollisionDebug = true;
+            CollisionDebugSelfCenter = selfCenter;
+            CollisionDebugSelfRight = selfRight.sqrMagnitude > 0.001f ? selfRight.normalized : Vector3.right;
+            CollisionDebugSelfForward = selfForward.sqrMagnitude > 0.001f ? selfForward.normalized : Vector3.forward;
+            CollisionDebugSelfHalfWidth = Mathf.Max(0.05f, selfHalfWidth);
+            CollisionDebugSelfHalfLength = Mathf.Max(0.05f, selfHalfLength);
+            CollisionDebugSelfMinHeight = selfMinHeight;
+            CollisionDebugSelfMaxHeight = Mathf.Max(selfMaxHeight, selfMinHeight + 0.1f);
+            CollisionDebugSweepStart = sweepStart;
+            CollisionDebugSweepEnd = sweepEnd;
+            CollisionDebugHasTarget = hasTarget;
+            CollisionDebugTargetCenter = targetCenter;
+            CollisionDebugTargetRight = targetRight.sqrMagnitude > 0.001f ? targetRight.normalized : Vector3.right;
+            CollisionDebugTargetForward = targetForward.sqrMagnitude > 0.001f ? targetForward.normalized : Vector3.forward;
+            CollisionDebugTargetHalfWidth = Mathf.Max(0.05f, targetHalfWidth);
+            CollisionDebugTargetHalfLength = Mathf.Max(0.05f, targetHalfLength);
+            CollisionDebugTargetMinHeight = targetMinHeight;
+            CollisionDebugTargetMaxHeight = Mathf.Max(targetMaxHeight, targetMinHeight + 0.1f);
+            CollisionDebugHit = hit;
+            CollisionDebugStatus = status ?? "";
+        }
+
+        internal static void ClearCollisionDebug()
+        {
+            HasCollisionDebug = false;
+            CollisionDebugHasTarget = false;
+            CollisionDebugHit = false;
+            CollisionDebugStatus = "";
+        }
+
+        internal static void BeginTrafficPresenceDebug(string status)
+        {
+            if (!TrafficPresenceDebugEnabled)
+            {
+                ClearTrafficPresenceDebug();
+                return;
+            }
+
+            HasTrafficPresenceDebug = true;
+            TrafficPresenceDebugSegmentCount = 0;
+            TrafficPresenceDebugStatus = status ?? "";
+        }
+
+        internal static void AddTrafficPresenceDebugSegment(Vector3 start, Vector3 end, Vector3 label, string text, int kind)
+        {
+            if (!TrafficPresenceDebugEnabled ||
+                TrafficPresenceDebugSegmentCount >= kMaxTrafficPresenceDebugSegments ||
+                !IsFinite(start) ||
+                !IsFinite(end) ||
+                !IsFinite(label))
+            {
+                return;
+            }
+
+            int index = TrafficPresenceDebugSegmentCount++;
+            TrafficPresenceDebugStarts[index] = start;
+            TrafficPresenceDebugEnds[index] = end;
+            TrafficPresenceDebugLabels[index] = label;
+            TrafficPresenceDebugTexts[index] = text ?? "";
+            TrafficPresenceDebugKinds[index] = Mathf.Clamp(kind, kTrafficPresenceDebugPrimary, kTrafficPresenceDebugHalo);
+        }
+
+        internal static void ClearTrafficPresenceDebug()
+        {
+            HasTrafficPresenceDebug = false;
+            TrafficPresenceDebugSegmentCount = 0;
+            TrafficPresenceDebugStatus = "";
+        }
+
+        internal static void SetTrafficGuardDebug(string status)
+        {
+            TrafficGuardDebugStatus = status ?? "";
+        }
+
+        internal static void ClearTrafficGuardDebug()
+        {
+            TrafficGuardDebugStatus = "";
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return !float.IsNaN(value.x) &&
+                   !float.IsNaN(value.y) &&
+                   !float.IsNaN(value.z) &&
+                   !float.IsInfinity(value.x) &&
+                   !float.IsInfinity(value.y) &&
+                   !float.IsInfinity(value.z);
+        }
+
+        internal static void SetTrafficPresenceTarget(
+            Entity lane,
+            Entity changeLane,
+            float curveStart,
+            float curveEnd,
+            float curveT,
+            float curveSign,
+            float rearSpan,
+            float forwardSpan)
+        {
+            if (lane == Entity.Null ||
+                float.IsNaN(curveStart) ||
+                float.IsNaN(curveEnd) ||
+                float.IsInfinity(curveStart) ||
+                float.IsInfinity(curveEnd))
+            {
+                ClearTrafficPresenceTarget();
+                return;
+            }
+
+            HasTrafficPresenceTarget = true;
+            TrafficPresenceLane = lane;
+            TrafficPresenceChangeLane = changeLane;
+            TrafficPresenceCurveStart = Mathf.Clamp01(curveStart);
+            TrafficPresenceCurveEnd = Mathf.Clamp01(curveEnd);
+            TrafficPresenceCurveT = Mathf.Clamp01(curveT);
+            TrafficPresenceCurveSign = curveSign < 0f ? -1f : 1f;
+            TrafficPresenceRearSpan = Mathf.Clamp(rearSpan, 0.0001f, 0.25f);
+            TrafficPresenceForwardSpan = Mathf.Clamp(forwardSpan, 0.0001f, 0.25f);
+        }
+
+        internal static void ClearTrafficPresenceTarget()
+        {
+            HasTrafficPresenceTarget = false;
+            TrafficPresenceLane = Entity.Null;
+            TrafficPresenceChangeLane = Entity.Null;
+            TrafficPresenceCurveStart = 0f;
+            TrafficPresenceCurveEnd = 0f;
+            TrafficPresenceCurveT = 0f;
+            TrafficPresenceCurveSign = 1f;
+            TrafficPresenceRearSpan = 0f;
+            TrafficPresenceForwardSpan = 0f;
+            ClearTrafficPresenceDebug();
         }
 
         internal static void Reset()
@@ -331,15 +739,23 @@ namespace BetaTestDrivingMod
             RedLightViolations = 0;
             PoliceChaseEnabled = false;
             VehicleCollisionEnabled = true;
+            RoadOnlyTrafficPresence = true;
+            TrafficPresenceHaloEnabled = false;
+            VisualCollisionDebugEnabled = false;
+            TrafficPresenceDebugEnabled = false;
             CollisionRetainedSpeed = 0.35f;
             ChaseCameraEnabled = true;
             ChaseCameraStatus = "Chase camera ready";
             HudVisible = false;
             PanelVisible = false;
+            ClearCollisionDebug();
+            ClearTrafficPresenceTarget();
+            ClearTrafficPresenceDebug();
+            ClearTrafficGuardDebug();
 
             if (s_Hud != null)
             {
-                Object.Destroy(s_Hud.gameObject);
+                UnityEngine.Object.Destroy(s_Hud.gameObject);
                 s_Hud = null;
             }
         }

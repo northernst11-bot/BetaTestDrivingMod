@@ -2,8 +2,8 @@
   "id": "BetaTestDrivingMod",
   "displayName": "Beta Test Driving Mod (Stable)",
   "author": "stoot",
-  "version": "0.3.27-stable",
-  "description": "Direct-drive live-vehicle control with the stable 0.3.24 animation path, crashguard collision, and tightened traffic presence.",
+  "version": "0.3.53-stable",
+  "description": "Direct-drive live-vehicle control with green AI presence, optional blue halo, and configurable keybinds.",
   "isCodeMod": true,
   "dependencies": []
 }

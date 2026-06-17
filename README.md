@@ -1,6 +1,6 @@
 # Beta Test Driving Mod (Stable)
 
-`0.3.27-stable`
+`0.3.53-stable`
 
 Source / MIT license: https://github.com/northernst11-bot/BetaTestDrivingMod
 
@@ -18,6 +18,16 @@ Police chase note: the experimental chase controls are hidden and disabled in th
 
 It does not spawn a fake player car. It takes over a real live vehicle already created by Cities: Skylines II, freezes the possessed car's vanilla physical path movement, then applies direct player movement after the normal car move step. Road intent assist now queues AI left/right turn intent and path connections, but it does not steer the physical body by itself.
 
+## Fixed in 0.3.53
+
+- Parks the possessed car's old blue vanilla route while driving so it does not stretch down the road and leave traffic reacting to a stale path.
+- Rebuilds vanilla pathfinding from the car's current lane and position when you release control.
+- Keeps the green AI presence active on the controlled car while leaving the optional blue extra-lane halo off by default.
+- Cleans stale lane markers and duplicate lane-object entries from lanes the controlled car already left.
+- Shortens AI presence near the car and removes direct traffic-guard braking so cars should not stop too far away or on unrelated lanes.
+- Adds configurable keybinds plus Numpad 0 collision and Numpad 9 AI-presence debug overlays.
+- Keeps the recent elevated-road pitch, low-FPS sync, focus-icon cleanup, and hitbox alignment fixes.
+
 ## Controls
 
 - `V`: possess or release a live vehicle
@@ -28,14 +38,58 @@ It does not spawn a fake player car. It takes over a real live vehicle already c
 - `Right` / `D`: steer right and request AI right-turn intent when road assist is enabled
 - `F8`: hide or show the tuning panel
 - `F7`: toggle the attached chase camera
+- `Numpad 0`: show or hide the collision-hitbox debug overlay
+- `Numpad 9`: show or hide the AI traffic-presence debug overlay
 
 Use the arrow keys if WASD moves your game camera or screen.
+Open the tuning panel's Keybinds section to change the primary keys. Arrow keys remain available as driving fallbacks.
 
 ## Current Build
 
 - Keeps vehicle collision enabled in the stable build.
+- Parks the possessed car's vanilla route buffer while you are driving so the old blue route does not stretch far down the road.
+- Keeps the live vanilla navigation target only just ahead of the controlled car instead of letting it chase the old path.
+- Clears the parked route state on release so vanilla traffic rebuilds a fresh path from the exact place you let go.
+- Adds a Road-only AI presence setting that clears the AI blocker and halo when the driven car is off the road.
+- Keeps the green primary AI presence active on the closest valid lane so traffic sees the controlled car.
+- Purges the possessed car from every lane-buffer marker touched during the drive so lanes you left should not keep an invisible queue blocker.
+- Periodically scans nearby same-height road lanes to remove older stale green markers the touched-lane list did not create.
+- Removes all duplicate green lane-object entries for the possessed car when cleaning a lane.
+- Leaves the blue extra lane halo off by default; it remains an optional debug/tuning switch.
+- If enabled manually, blue halo lanes are limited to the same road owner, same carriageway group, and same road height.
+- Removes the direct traffic-guard braking system from the public update order; traffic should react through lane presence instead of the mod forcing nearby cars to stop.
+- Moves AI traffic presence back to one writer so the mod does not update the same lane buffers from two systems.
+- Refreshes the under-car road/lane lookup more often so pathfinding presence follows the controlled car more closely while moving.
+- Rebuilds the vanilla path handoff from the car's current release position so a released vehicle does not try to return to its old route anchor.
+- Adds a Keybinds section in the panel for possess/release, driving, panel, chase camera, collision debug, and AI-presence debug controls.
+- Keeps the green primary marker on the closest valid lane and does not draw the blue halo unless that optional switch is enabled.
+- Tightens AI lane presence to a shorter near-car span with no speed-based lead, so traffic should not slow down as far ahead.
+- Shrinks the visible AI lane-presence marker closer to vehicle size instead of drawing a long lane reservation.
+- Adds a clickable AI traffic-presence debug overlay that draws the live primary lane marker traffic should react to.
+- Adds Numpad 9 as a quick toggle for the AI traffic-presence overlay.
+- Aligns the driven car's pitch to the nearby road grade on elevated up/down roads so the body and frame velocity follow the slope.
+- Stores the actual per-tick movement velocity after road-height correction, reducing visual frame mismatch while climbing or descending.
+- Clears old extra-lane reservations so adjacent lanes are not blocked by stale blue halo markers.
+- Extends same-lane front/rear presence so cars behind the driven car get a clearer blocker while it is moving.
+- Makes low-FPS transform-frame resync require actual frame drift, reducing occasional visual snap-back during performance drops.
+- Backs off the too-aggressive low-FPS transform-frame resync so the visible car is less likely to lag back and forth during performance drops.
+- Loosens traffic visibility from strict road attachment so the car can be seen even when it is angled across lane centers.
+- Removes the lane-presence stabilization delay so a new under-car lane can be marked immediately.
+- Keeps the previous lane marked briefly during movement so traffic does not lose you while the controlled car crosses lane boundaries.
+- Keeps low-FPS transform-frame resync, but with the smoother threshold from the previous better-feeling build.
+- Removes the duplicate pre-move traffic-presence refresher so lane-object updates happen from the direct-control path only.
+- Resyncs the controlled car's transform frames during FPS drops or large render-frame drift to reduce low-performance visual glitching.
+- Adds a clickable collision-hitbox overlay setting, with Numpad 0 as the quick toggle.
+- Skips vehicle collision targets on different road heights so cars below/above bridges do not create invisible barriers.
+- Uses a clearer ON/OFF pill switch for clickable panel toggles.
+- Keeps the traffic-presence lane marker straddling the controlled car and refreshes it more often so AI cars see your occupied spot sooner.
+- Hides the vanilla focus/info-panel marker while a vehicle is directly controlled.
+- Restores the last stable possessed-car animation path so controlled vehicles do not bounce vertically.
+- Leaves `TransformFrame` state/activity alone during live driving so brake, reverse, and turn-light flags work normally again.
+- Keeps moving-traffic collision hitboxes aligned with the visible vehicle pose.
+- Caches nearby road-lane pose lookups and skips nearby searches when the current lane pose is already close and valid.
 - Restores the `0.3.24-traffic-presence-crashguard-local` transform-frame animation path for the stable publish.
-- Tightens lane-object traffic presence to close, direction-matching road lanes so traffic does not react to a stale far-away marker.
+- Keeps lane-object traffic presence close to the driven car while allowing nearby same-height lanes to see it during swerves.
 - Uses cached vehicle collision checks, but no longer pushes or rewrites other live traffic vehicles on impact.
 - Uses current vehicle transforms for collision checks instead of reading interpolation frame buffers from other traffic.
 - Reuses recent road-turn intent resolution while the same steering input is held, reducing repeated lane-connection scans at intersections.

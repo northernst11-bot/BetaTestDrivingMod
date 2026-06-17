@@ -81,7 +81,7 @@ namespace BetaTestDrivingMod
 
             if (m_CameraUpdateSystem != null && m_CameraUpdateSystem.orbitCameraController != null)
             {
-                m_CameraUpdateSystem.orbitCameraController.followedEntity = target;
+                m_CameraUpdateSystem.orbitCameraController.followedEntity = Entity.Null;
                 if (m_PreviousController != null)
                     m_CameraUpdateSystem.orbitCameraController.TryMatchPosition(m_PreviousController);
             }
@@ -102,7 +102,7 @@ namespace BetaTestDrivingMod
 
             if (m_CameraUpdateSystem.orbitCameraController != null)
             {
-                m_CameraUpdateSystem.orbitCameraController.followedEntity = target;
+                m_CameraUpdateSystem.orbitCameraController.followedEntity = Entity.Null;
                 m_CameraUpdateSystem.activeCameraController = m_CameraUpdateSystem.orbitCameraController;
             }
             else if (m_CameraUpdateSystem.activeCameraController == null && m_CameraUpdateSystem.gamePlayController != null)
@@ -176,6 +176,12 @@ namespace BetaTestDrivingMod
 
             if (m_CameraUpdateSystem != null)
             {
+                if (m_CameraUpdateSystem.orbitCameraController != null &&
+                    (m_Target == Entity.Null || m_CameraUpdateSystem.orbitCameraController.followedEntity == m_Target))
+                {
+                    m_CameraUpdateSystem.orbitCameraController.followedEntity = Entity.Null;
+                }
+
                 if (m_PreviousController != null)
                     m_CameraUpdateSystem.activeCameraController = m_PreviousController;
                 else if (m_CameraUpdateSystem.gamePlayController != null)

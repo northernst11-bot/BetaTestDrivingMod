@@ -35,7 +35,20 @@ const chaseCameraDistance = api.bindValue(group, "ChaseCameraDistance", 10.5);
 const chaseCameraHeight = api.bindValue(group, "ChaseCameraHeight", 3.25);
 const chaseCameraLookAhead = api.bindValue(group, "ChaseCameraLookAhead", 12);
 const vehicleCollisionEnabled = api.bindValue(group, "VehicleCollisionEnabled", true);
+const roadOnlyTrafficPresence = api.bindValue(group, "RoadOnlyTrafficPresence", true);
+const trafficPresenceHaloEnabled = api.bindValue(group, "TrafficPresenceHaloEnabled", false);
+const visualCollisionDebugEnabled = api.bindValue(group, "VisualCollisionDebugEnabled", false);
+const trafficPresenceDebugEnabled = api.bindValue(group, "TrafficPresenceDebugEnabled", false);
 const collisionRetainedSpeed = api.bindValue(group, "CollisionRetainedSpeed", 0.35);
+const toggleDrivingKey = api.bindValue(group, "ToggleDrivingKey", "V");
+const throttleKey = api.bindValue(group, "ThrottleKey", "W");
+const brakeKey = api.bindValue(group, "BrakeKey", "S");
+const steerLeftKey = api.bindValue(group, "SteerLeftKey", "A");
+const steerRightKey = api.bindValue(group, "SteerRightKey", "D");
+const panelKey = api.bindValue(group, "PanelKey", "F8");
+const chaseCameraKey = api.bindValue(group, "ChaseCameraKey", "F7");
+const collisionDebugKey = api.bindValue(group, "CollisionDebugKey", "Keypad0");
+const trafficPresenceDebugKey = api.bindValue(group, "TrafficPresenceDebugKey", "Keypad9");
 
 const panel = {
     position: "absolute",
@@ -178,6 +191,204 @@ function TabButton({ id, selected, setTab, children }) {
 
 function ToggleRow({ binding, action, label, hint }) {
     const value = api.useValue(binding);
+    const checked = !!value;
+    const toggle = () => trigger(action, !checked);
+    const switchStyle = {
+        minWidth: "66rem",
+        height: "28rem",
+        padding: "0 12rem",
+        borderRadius: "999rem",
+        border: checked ? "1rem solid rgba(111, 242, 188, 0.82)" : "1rem solid rgba(255, 255, 255, 0.26)",
+        backgroundColor: checked ? "rgba(36, 177, 125, 0.9)" : "rgba(28, 34, 39, 0.9)",
+        color: checked ? "rgba(2, 18, 13, 0.96)" : "rgba(235, 240, 244, 0.82)",
+        fontSize: "12rem",
+        fontWeight: "800",
+        textAlign: "center",
+        flex: "0 0 auto",
+        boxShadow: checked ? "0 0 0 2rem rgba(74, 230, 169, 0.13)" : "none"
+    };
+    return h("div", {
+        style: Object.assign({}, row, {
+            justifyContent: "space-between",
+            alignItems: "center",
+            minHeight: "34rem",
+            padding: "7rem 0",
+            borderTop: "1rem solid rgba(255, 255, 255, 0.08)",
+            cursor: "pointer"
+        }),
+        onClick: toggle
+    },
+        h("div", {
+            style: {
+                minWidth: 0,
+                flex: 1,
+                flexDirection: "column",
+                gap: "2rem",
+                lineHeight: "1.18"
+            }
+        },
+            h("div", { style: { fontWeight: "650" } }, label),
+            hint ? h("div", { style: { opacity: 0.66, fontSize: "12rem", lineHeight: "1.18" } }, hint) : null
+        ),
+        h("button", {
+            type: "button",
+            "aria-pressed": checked,
+            onClick: event => {
+                event.stopPropagation();
+                toggle();
+            },
+            onMouseDown: event => event.stopPropagation(),
+            style: switchStyle
+        }, checked ? "ON" : "OFF")
+    );
+}
+
+function toUnityKeyName(event) {
+    const code = event.code || "";
+    const key = event.key || "";
+    const codeMap = {
+        ArrowUp: "UpArrow",
+        ArrowDown: "DownArrow",
+        ArrowLeft: "LeftArrow",
+        ArrowRight: "RightArrow",
+        NumpadAdd: "KeypadPlus",
+        NumpadSubtract: "KeypadMinus",
+        NumpadMultiply: "KeypadMultiply",
+        NumpadDivide: "KeypadDivide",
+        NumpadDecimal: "KeypadPeriod",
+        Space: "Space",
+        Enter: "Return",
+        NumpadEnter: "KeypadEnter",
+        Escape: "Escape",
+        Tab: "Tab",
+        Backspace: "Backspace",
+        Delete: "Delete",
+        Insert: "Insert",
+        Home: "Home",
+        End: "End",
+        PageUp: "PageUp",
+        PageDown: "PageDown",
+        ShiftLeft: "LeftShift",
+        ShiftRight: "RightShift",
+        ControlLeft: "LeftControl",
+        ControlRight: "RightControl",
+        AltLeft: "LeftAlt",
+        AltRight: "RightAlt",
+        Minus: "Minus",
+        Equal: "Equals",
+        BracketLeft: "LeftBracket",
+        BracketRight: "RightBracket",
+        Semicolon: "Semicolon",
+        Quote: "Quote",
+        Comma: "Comma",
+        Period: "Period",
+        Slash: "Slash",
+        Backslash: "Backslash",
+        Backquote: "BackQuote"
+    };
+
+    if (/^Key[A-Z]$/.test(code)) {
+        return code.slice(3);
+    }
+
+    if (/^Digit[0-9]$/.test(code)) {
+        return `Alpha${code.slice(5)}`;
+    }
+
+    if (/^Numpad[0-9]$/.test(code)) {
+        return `Keypad${code.slice(6)}`;
+    }
+
+    if (/^F([1-9]|1[0-2])$/.test(code)) {
+        return code;
+    }
+
+    if (codeMap[code]) {
+        return codeMap[code];
+    }
+
+    if (key.length === 1) {
+        const upper = key.toUpperCase();
+        if (/^[A-Z]$/.test(upper)) {
+            return upper;
+        }
+
+        if (/^[0-9]$/.test(upper)) {
+            return `Alpha${upper}`;
+        }
+    }
+
+    return null;
+}
+
+function formatKeyName(value) {
+    const text = `${value || ""}`;
+    const labels = {
+        UpArrow: "Up",
+        DownArrow: "Down",
+        LeftArrow: "Left",
+        RightArrow: "Right",
+        LeftControl: "Left Ctrl",
+        RightControl: "Right Ctrl",
+        LeftShift: "Left Shift",
+        RightShift: "Right Shift",
+        LeftAlt: "Left Alt",
+        RightAlt: "Right Alt",
+        Return: "Enter",
+        KeypadPlus: "Numpad +",
+        KeypadMinus: "Numpad -",
+        KeypadMultiply: "Numpad *",
+        KeypadDivide: "Numpad /",
+        KeypadPeriod: "Numpad .",
+        KeypadEnter: "Numpad Enter"
+    };
+
+    if (labels[text]) {
+        return labels[text];
+    }
+
+    if (/^Alpha[0-9]$/.test(text)) {
+        return text.slice(5);
+    }
+
+    if (/^Keypad[0-9]$/.test(text)) {
+        return `Numpad ${text.slice(6)}`;
+    }
+
+    return text.replace(/([a-z])([A-Z0-9])/g, "$1 $2");
+}
+
+function KeybindRow({ binding, action, label, hint }) {
+    const value = api.useValue(binding) || "";
+    const [capturing, setCapturing] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!capturing) {
+            return undefined;
+        }
+
+        const onKeyDown = event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (event.key === "Escape") {
+                setCapturing(false);
+                return;
+            }
+
+            const unityKey = toUnityKeyName(event);
+            if (!unityKey) {
+                return;
+            }
+
+            trigger(action, unityKey);
+            setCapturing(false);
+        };
+
+        window.addEventListener("keydown", onKeyDown, true);
+        return () => window.removeEventListener("keydown", onKeyDown, true);
+    }, [action, capturing]);
+
     return h("div", {
         style: Object.assign({}, row, {
             justifyContent: "space-between",
@@ -199,12 +410,27 @@ function ToggleRow({ binding, action, label, hint }) {
             h("div", { style: { fontWeight: "650" } }, label),
             hint ? h("div", { style: { opacity: 0.66, fontSize: "12rem", lineHeight: "1.18" } }, hint) : null
         ),
-        h("input", {
-            type: "checkbox",
-            checked: !!value,
-            onChange: event => trigger(action, !!event.target.checked),
-            style: { width: "20rem", height: "20rem", flex: "0 0 auto" }
-        })
+        h("button", {
+            type: "button",
+            onClick: event => {
+                event.stopPropagation();
+                setCapturing(true);
+            },
+            onMouseDown: event => event.stopPropagation(),
+            style: {
+                minWidth: "104rem",
+                minHeight: "28rem",
+                padding: "0 10rem",
+                borderRadius: "999rem",
+                border: capturing ? "1rem solid rgba(255, 217, 121, 0.82)" : "1rem solid rgba(111, 207, 255, 0.54)",
+                backgroundColor: capturing ? "rgba(218, 151, 48, 0.28)" : "rgba(46, 116, 153, 0.28)",
+                color: "rgba(245, 250, 252, 0.96)",
+                fontSize: "12rem",
+                fontWeight: "800",
+                textAlign: "center",
+                flex: "0 0 auto"
+            }
+        }, capturing ? "Press key" : formatKeyName(value))
     );
 }
 
@@ -381,6 +607,8 @@ function DriveView() {
 }
 
 function TuningView() {
+    const collisionKeyLabel = formatKeyName(api.useValue(collisionDebugKey) || "Keypad0");
+    const trafficKeyLabel = formatKeyName(api.useValue(trafficPresenceDebugKey) || "Keypad9");
     return h("div", null,
         h(SliderRow, { binding: targetSpeedMph, action: "SetTargetSpeedMph", label: "Forward speed", step: 1, unit: " mph" }),
         h(SliderRow, { binding: reverseSpeedMph, action: "SetReverseSpeedMph", label: "Reverse speed", step: 1, unit: " mph" }),
@@ -403,7 +631,28 @@ function TuningView() {
             }
         }, "Collision"),
         h(ToggleRow, { binding: vehicleCollisionEnabled, action: "SetVehicleCollisionEnabled", label: "Vehicle collision", hint: "Bump into traffic instead of clipping through cars." }),
-        h(SliderRow, { binding: collisionRetainedSpeed, action: "SetCollisionRetainedSpeed", label: "Retained speed after hit", step: 0.01, format: value => value.toFixed(2) })
+        h(ToggleRow, { binding: roadOnlyTrafficPresence, action: "SetRoadOnlyTrafficPresence", label: "Road-only AI presence", hint: "Remove the AI blocker and halo when the driven car is off the road." }),
+        h(ToggleRow, { binding: trafficPresenceHaloEnabled, action: "SetTrafficPresenceHaloEnabled", label: "Blue extra lane halo", hint: "Optional extra marker; leave off to keep only the green primary AI presence." }),
+        h(ToggleRow, { binding: visualCollisionDebugEnabled, action: "SetVisualCollisionDebugEnabled", label: "Show collision hitboxes", hint: `Draw the live self and target boxes; ${collisionKeyLabel} also toggles this.` }),
+        h(ToggleRow, { binding: trafficPresenceDebugEnabled, action: "SetTrafficPresenceDebugEnabled", label: "Show AI traffic presence", hint: `Draw the live lane markers traffic should react to; ${trafficKeyLabel} also toggles this.` }),
+        h(SliderRow, { binding: collisionRetainedSpeed, action: "SetCollisionRetainedSpeed", label: "Retained speed after hit", step: 0.01, format: value => value.toFixed(2) }),
+        h("div", {
+            style: {
+                marginTop: "12rem",
+                paddingTop: "10rem",
+                borderTop: "1rem solid rgba(255, 255, 255, 0.16)",
+                fontWeight: "750"
+            }
+        }, "Keybinds"),
+        h(KeybindRow, { binding: toggleDrivingKey, action: "SetToggleDrivingKey", label: "Possess / release" }),
+        h(KeybindRow, { binding: throttleKey, action: "SetThrottleKey", label: "Drive forward", hint: "Up Arrow also works." }),
+        h(KeybindRow, { binding: brakeKey, action: "SetBrakeKey", label: "Brake / reverse", hint: "Down Arrow also works." }),
+        h(KeybindRow, { binding: steerLeftKey, action: "SetSteerLeftKey", label: "Steer left", hint: "Left Arrow also works." }),
+        h(KeybindRow, { binding: steerRightKey, action: "SetSteerRightKey", label: "Steer right", hint: "Right Arrow also works." }),
+        h(KeybindRow, { binding: panelKey, action: "SetPanelKey", label: "Panel" }),
+        h(KeybindRow, { binding: chaseCameraKey, action: "SetChaseCameraKey", label: "Chase camera" }),
+        h(KeybindRow, { binding: collisionDebugKey, action: "SetCollisionDebugKey", label: "Collision debug" }),
+        h(KeybindRow, { binding: trafficPresenceDebugKey, action: "SetTrafficPresenceDebugKey", label: "AI presence debug" })
     );
 }
 

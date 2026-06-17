@@ -1,13 +1,23 @@
 <Publish>
   <ModId Value="145145" />
 	<DisplayName Value="Beta Test Driving Mod (Stable)" />
-	<ShortDescription Value="Direct-drive live-vehicle control with safer cached collision checks." />
+	<ShortDescription Value="Direct-drive live-vehicle control with green AI presence, optional blue halo, and configurable keybinds." />
 	<LongDescription>
 # Beta Test Driving Mod (Stable)
 
 Beta Test Driving Mod (Stable) lets you possess and drive a real live vehicle already moving in Cities: Skylines II. This stable build keeps the tested Direct Drive system, the cleaner top-left COUI driving panel, safer crashguard paths around control/camera cleanup, the tested GTA-style attached chase camera, and unlocked manual tuning values.
 
 This build keeps vehicle collision enabled with cached nearby collision candidates, but it no longer pushes other live traffic vehicles or rewrites their transform-frame buffers after impacts. Building collision and crash fire effects are not included in this build.
+
+## Fixed in 0.3.53
+
+- Parks the possessed car's old blue vanilla route while driving so it does not stretch down the road and leave traffic reacting to a stale path.
+- Rebuilds vanilla pathfinding from the car's current lane and position when you release control, instead of trying to return to the old route anchor.
+- Keeps the green AI presence active on the controlled car while leaving the optional blue extra-lane halo off by default.
+- Cleans stale lane-buffer markers and duplicate lane-object entries from lanes the controlled car already left.
+- Shortens the AI presence span near the car and removes direct traffic-guard braking so cars should not stop too far away or on unrelated lanes.
+- Adds configurable keybinds plus Numpad 0 collision and Numpad 9 AI-presence debug overlays.
+- Keeps the recent elevated-road pitch, low-FPS sync, focus-icon cleanup, and hitbox alignment fixes from testing.
 
 Feedback / bug reports: https://forum.paradoxplaza.com/forum/threads/beta-test-driving-mod-feedback-and-bug-reports.1925686/
 
@@ -25,8 +35,34 @@ Police chase note: the experimental chase controls are hidden and disabled in th
 - Arrow-key driving controls, recommended if WASD moves your camera or screen
 - WASD also works as a fallback
 - Top-left driving panel for speed, input status, possession, and tuning sliders
+- Keybinds section for changing possess/release, driving, panel, camera, collision debug, and AI-presence debug controls
+- Parked live route buffer keeps the possessed car's blue path local while driving
+- Release handoff asks vanilla traffic for a fresh path from the car's current release position
+- Road-only AI presence setting clears the AI blocker and halo when the controlled car is off the road
+- Green primary AI presence stays active on the closest valid lane so traffic sees the controlled car
+- Stale green lane-buffer markers are purged from lanes the controlled car already left
+- Nearby same-height road lanes are periodically scanned for older stale green markers
+- Duplicate possessed-car lane-object entries are fully removed during cleanup
+- Blue extra lane halo is off by default and remains an optional tuning/debug switch
+- Optional blue halo lanes are limited to the same road owner, same carriageway group, and same road height
+- Primary-lane AI blocker only publishes when the controlled car is close to a valid same-height road lane
 - Vehicle collision stays enabled by default
+- Single-writer lane presence avoids duplicate lane-buffer updates
+- Clickable AI traffic-presence debug overlay plus Numpad 9 quick toggle shows the primary lane marker traffic should react to
+- Green primary lane marker remains active around the controlled car
+- AI lane presence uses a shorter near-car span with no speed-based lead to reduce far-ahead slowing
+- Direct traffic-guard braking is not scheduled in the public crashguard build
+- AI lane-presence marker is shortened closer to vehicle size instead of drawing a long lane reservation
+- Road/lane lookup refreshes more often so the marker follows moving swerves more closely
+- Road-grade pitch and actual slope velocity reduce elevated-road visual snap
+- Looser traffic visibility keeps presence active when the controlled car is angled across nearby lanes
+- Lag-spike transform-frame resync reduces low-FPS visual drift/glitching
+- Optional Numpad 0 collision-hitbox overlay for checking the driven car and nearest target vehicle
+- Height-aware vehicle collision avoids invisible barriers from traffic on roads above or below you
+- Traffic-presence sync now straddles the controlled car so AI traffic sees your occupied spot sooner
+- Focus/selection marker cleanup so the vanilla focus icon does not stick above the possessed vehicle
 - Cached nearby vehicle collision checks reduce per-frame traffic-query work
+- Cached nearby road-lane pose lookup reduces repeated road-search work while driving
 - Collision blocks the possessed car without pushing or rewriting other live traffic vehicles
 - Cached road-turn intent while the same steering input is held
 - Collision tuning for collision on/off and retained speed after impact
@@ -57,13 +93,15 @@ This is a beta test mod. It controls one possessed live road car and does not re
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<Screenshot Value="Properties/1.png" />
 	<Tag Value="Code Mod" />
-	<ModVersion Value="0.3.27-stable" />
+	<ModVersion Value="0.3.53-stable" />
 	<GameVersion Value="1.5.*" />
 	<ChangeLog>
-0.3.27-stable update:
-- Restores the stable 0.3.24 transform-frame animation path.
-- Keeps traffic presence limited to close, direction-matching road lanes so cars do not react from too far away.
-- Keeps the crash fix by not writing CarCurrentLane road state back to the possessed vehicle.
+0.3.53-stable update:
+- Parks the possessed car's vanilla route buffer while driving so the old blue route does not stretch far down the road.
+- Keeps the live vanilla navigation target just ahead of the controlled car instead of letting it chase the old path.
+- Clears the parked path state on release so vanilla traffic repaths from the car's current lane and position.
+- Keeps the green primary AI presence active and the blue extra lane halo off by default.
+- Keeps stale lane-buffer cleanup from the previous build.
 	</ChangeLog>
 	<AccessLevel Value="Public" />
 </Publish>
