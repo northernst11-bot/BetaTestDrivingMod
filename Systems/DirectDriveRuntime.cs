@@ -20,6 +20,9 @@ namespace BetaTestDrivingMod
     internal static class DirectDriveRuntime
     {
         private const float kInputStaleSeconds = 0.35f;
+        private const float kRenderPredictionMaxSeconds = 0.18f;
+        private const float kRenderPredictionMaxDistanceSq = 12f * 12f;
+        private const float kRenderPoseSharpness = 34f;
         private const string kKeyBindingPrefsPrefix = "BetaTestDrivingMod.DirectDrive.Key.";
         internal const int kMaxTrafficPresenceDebugSegments = 6;
         internal const int kTrafficPresenceDebugPrimary = 0;
@@ -36,6 +39,9 @@ namespace BetaTestDrivingMod
         private static bool s_PoliceChaseTestRequested;
         private static bool s_KeyBindingsLoaded;
         private static int s_BlockHotkeysUntilFrame = -1;
+        private static int s_RenderPoseFrame = -1;
+        private static Vector3 s_RenderPosePosition;
+        private static Quaternion s_RenderPoseRotation = Quaternion.identity;
         private static KeyCode s_ToggleDrivingKeyCode = KeyCode.V;
         private static KeyCode s_ThrottleKeyCode = KeyCode.W;
         private static KeyCode s_BrakeKeyCode = KeyCode.S;
@@ -61,9 +67,13 @@ namespace BetaTestDrivingMod
         internal static string ControlStatus { get; private set; } = "Direct control ready";
         internal static float SpeedMph { get; private set; }
         internal static bool Braking { get; private set; }
+        internal static bool ReverseActive { get; private set; }
         internal static bool ReverseReady { get; private set; }
         internal static Vector3 PosePosition { get; private set; }
         internal static Quaternion PoseRotation { get; private set; } = Quaternion.identity;
+        internal static Vector3 PoseVelocity { get; private set; }
+        internal static float PoseAngularVelocityYaw { get; private set; }
+        internal static float PoseSampleTime { get; private set; } = -999f;
 
         internal static float TargetSpeedMph { get; set; } = 42f;
         internal static float ReverseSpeedMph { get; set; } = 9f;
@@ -464,17 +474,81 @@ namespace BetaTestDrivingMod
             return frame;
         }
 
-        internal static void SetDriving(Entity entity, string name, Vector3 position, Quaternion rotation, float speedMph, bool braking, bool reverseReady, string controlStatus)
+        internal static bool TryGetRenderPose(out Vector3 position, out Quaternion rotation, out Vector3 velocity, out float angularVelocityYaw)
         {
+            position = PosePosition;
+            rotation = PoseRotation;
+            velocity = PoseVelocity;
+            angularVelocityYaw = PoseAngularVelocityYaw;
+            if (!IsDriving)
+                return false;
+
+            int frame = Time.frameCount;
+            if (s_RenderPoseFrame != frame)
+            {
+                float elapsed = PoseSampleTime < -100f ? 0f : Mathf.Clamp(Time.unscaledTime - PoseSampleTime, 0f, kRenderPredictionMaxSeconds);
+                Vector3 predictedPosition = PosePosition + PoseVelocity * elapsed;
+                Quaternion predictedRotation = PoseRotation;
+                if (Mathf.Abs(PoseAngularVelocityYaw) > 0.0001f)
+                    predictedRotation = Quaternion.AngleAxis(PoseAngularVelocityYaw * elapsed * Mathf.Rad2Deg, Vector3.up) * PoseRotation;
+
+                if (!IsFinite(predictedPosition) || !IsFinite(predictedRotation) ||
+                    (predictedPosition - PosePosition).sqrMagnitude > kRenderPredictionMaxDistanceSq)
+                {
+                    predictedPosition = PosePosition;
+                    predictedRotation = PoseRotation;
+                }
+
+                float frameDelta = Time.unscaledDeltaTime > 0f ? Time.unscaledDeltaTime : Time.deltaTime;
+                float dt = Mathf.Clamp(frameDelta, 0f, 0.05f);
+                float blend = 1f - Mathf.Exp(-kRenderPoseSharpness * dt);
+                if (!IsFinite(s_RenderPosePosition) || !IsFinite(s_RenderPoseRotation) ||
+                    (s_RenderPosePosition - PosePosition).sqrMagnitude > kRenderPredictionMaxDistanceSq)
+                {
+                    s_RenderPosePosition = predictedPosition;
+                    s_RenderPoseRotation = predictedRotation;
+                }
+                else
+                {
+                    s_RenderPosePosition = Vector3.Lerp(s_RenderPosePosition, predictedPosition, blend);
+                    s_RenderPoseRotation = Quaternion.Slerp(s_RenderPoseRotation, predictedRotation, blend);
+                }
+
+                s_RenderPoseFrame = frame;
+            }
+
+            position = s_RenderPosePosition;
+            rotation = s_RenderPoseRotation;
+            return true;
+        }
+
+        internal static void SetDriving(Entity entity, string name, Vector3 position, Quaternion rotation, Vector3 velocity, float angularVelocityYaw, float speedMph, bool braking, bool reversing, bool reverseReady, string controlStatus)
+        {
+            bool resetRenderPose = !IsDriving ||
+                PossessedEntity != entity ||
+                !IsFinite(s_RenderPosePosition) ||
+                !IsFinite(s_RenderPoseRotation) ||
+                (s_RenderPosePosition - position).sqrMagnitude > kRenderPredictionMaxDistanceSq;
+
             IsDriving = true;
             PossessedEntity = entity;
             PossessedName = name ?? "";
             PosePosition = position;
             PoseRotation = rotation;
+            PoseVelocity = IsFinite(velocity) ? velocity : Vector3.zero;
+            PoseAngularVelocityYaw = float.IsNaN(angularVelocityYaw) || float.IsInfinity(angularVelocityYaw) ? 0f : angularVelocityYaw;
+            PoseSampleTime = Time.unscaledTime;
             SpeedMph = speedMph;
             Braking = braking;
+            ReverseActive = reversing;
             ReverseReady = reverseReady;
             ControlStatus = controlStatus ?? "";
+            if (resetRenderPose)
+            {
+                s_RenderPosePosition = position;
+                s_RenderPoseRotation = rotation;
+                s_RenderPoseFrame = -1;
+            }
 
             string inputState = InputFresh ? "" : $" input stale {InputAgeSeconds:0.00}s";
             StatusText = $"Direct driving {SpeedMph:0} mph  input {InputThrottle:0.0}/{InputSteering:0.0}{inputState}";
@@ -487,7 +561,14 @@ namespace BetaTestDrivingMod
             PossessedName = "";
             SpeedMph = 0f;
             Braking = false;
+            ReverseActive = false;
             ReverseReady = false;
+            PoseVelocity = Vector3.zero;
+            PoseAngularVelocityYaw = 0f;
+            PoseSampleTime = -999f;
+            s_RenderPosePosition = Vector3.zero;
+            s_RenderPoseRotation = Quaternion.identity;
+            s_RenderPoseFrame = -1;
             StatusText = status ?? ReadyStatusText;
             ControlStatus = "Direct control ready";
             ClearCollisionDebug();
@@ -670,6 +751,18 @@ namespace BetaTestDrivingMod
                    !float.IsInfinity(value.x) &&
                    !float.IsInfinity(value.y) &&
                    !float.IsInfinity(value.z);
+        }
+
+        private static bool IsFinite(Quaternion value)
+        {
+            return !float.IsNaN(value.x) &&
+                   !float.IsNaN(value.y) &&
+                   !float.IsNaN(value.z) &&
+                   !float.IsNaN(value.w) &&
+                   !float.IsInfinity(value.x) &&
+                   !float.IsInfinity(value.y) &&
+                   !float.IsInfinity(value.z) &&
+                   !float.IsInfinity(value.w);
         }
 
         internal static void SetTrafficPresenceTarget(

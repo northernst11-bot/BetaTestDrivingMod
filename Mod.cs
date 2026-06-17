@@ -10,7 +10,7 @@ namespace BetaTestDrivingMod
     public sealed class Mod : IMod
     {
         public const string kModName = "BetaTestDrivingMod";
-        public const string kVersion = "0.3.53-stable";
+        public const string kVersion = "0.3.54-stable";
 
         public static readonly ILog log = LogManager.GetLogger($"{kModName}.{nameof(Mod)}").SetShowsErrorsInUI(false);
 
@@ -29,7 +29,7 @@ namespace BetaTestDrivingMod
             updateSystem.UpdateBefore<DirectDriveFreezeSystem, CarMoveSystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<DirectDriveControlSystem, CarMoveSystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<DirectDriveCameraSystem, CameraUpdateSystem>(SystemUpdatePhase.PreCulling);
-            log.Info("Beta Test Driving Mod systems registered: direct physical vehicle control, single-writer traffic presence, frame-buffered input, safe road attach defaults, PreCulling chase camera, and simplified public COUI driving panel. Experimental police chase and direct traffic guard systems are not scheduled in the public crashguard build.");
+            log.Info("Beta Test Driving Mod systems registered: direct physical vehicle control, camera smoothing, single-writer traffic presence, frame-buffered input, safe road attach defaults, PreCulling chase camera, and simplified public COUI driving panel. Experimental police chase and direct traffic guard systems are not scheduled in the public crashguard build.");
         }
 
         public void OnDispose()

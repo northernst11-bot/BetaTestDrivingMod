@@ -191,10 +191,15 @@ namespace BetaTestDrivingMod
         {
             try
             {
-                if (m_SelectedInfo != null && m_SelectedInfo.selectedEntity != Entity.Null)
+                bool hasSelectedInfo = m_SelectedInfo != null && m_SelectedInfo.selectedEntity != Entity.Null;
+                bool hasToolSelection = m_ToolSystem != null && m_ToolSystem.selected != Entity.Null;
+                if (!hasSelectedInfo && !hasToolSelection)
+                    return;
+
+                if (hasSelectedInfo)
                     m_SelectedInfo.SetSelection(Entity.Null);
 
-                if (m_ToolSystem != null && m_ToolSystem.selected != Entity.Null)
+                if (hasToolSelection)
                 {
                     m_ToolSystem.selected = Entity.Null;
                     m_ToolSystem.selectedIndex = -1;

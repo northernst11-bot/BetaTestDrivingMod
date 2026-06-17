@@ -121,6 +121,12 @@ namespace BetaTestDrivingMod
         {
             Vector3 carPosition = DirectDriveRuntime.PosePosition;
             Quaternion carRotation = DirectDriveRuntime.PoseRotation;
+            if (DirectDriveRuntime.TryGetRenderPose(out Vector3 renderPosition, out Quaternion renderRotation, out _, out _))
+            {
+                carPosition = renderPosition;
+                carRotation = renderRotation;
+            }
+
             Vector3 forward = Vector3.ProjectOnPlane(carRotation * Vector3.forward, Vector3.up);
             if (forward.sqrMagnitude < 0.001f)
                 forward = Vector3.forward;

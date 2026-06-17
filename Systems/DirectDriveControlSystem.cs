@@ -27,6 +27,7 @@ namespace BetaTestDrivingMod
         private const float kMpsToMph = 2.23693629f;
         private const float kMphToMps = 0.44704f;
         private const float kSimulationStepSeconds = 1f / 60f;
+        private const float kMaxControlStepSeconds = 1f / 30f;
         private const float kInterpolationFrameSeconds = 16f / 60f;
         private const float kMaxVerticalCorrectionPerTick = 0.08f;
         private const float kNearbyLaneSearchRadius = 26f;
@@ -49,10 +50,10 @@ namespace BetaTestDrivingMod
         private const float kTrafficPresenceMinCurveSpan = 0.0004f;
         private const float kTrafficPresenceMaxCurveSpan = 0.025f;
         private const float kTrafficPresenceCurveUpdateThresholdSq = 0.000001f;
-        private const uint kNearbyRoadPoseCacheFrames = 2U;
-        private const float kNearbyRoadPoseCacheReuseDistanceSq = 1.44f;
+        private const uint kNearbyRoadPoseCacheFrames = 4U;
+        private const float kNearbyRoadPoseCacheReuseDistanceSq = 2.25f;
         private const float kTrafficPresenceStaleCleanupRadius = 34f;
-        private const uint kTrafficPresenceNearbyCleanupFrames = 10U;
+        private const uint kTrafficPresenceNearbyCleanupFrames = 24U;
         private const uint kTurnIntentCacheFrames = 15U;
         private const int kTrafficPresenceStableFrames = 1;
         private const uint kTrafficPresenceMinSyncFrames = 1U;
@@ -106,6 +107,7 @@ namespace BetaTestDrivingMod
         private Entity m_NearbyRoadPoseCacheLane = Entity.Null;
         private Vector3 m_NearbyRoadPoseCacheCenter;
         private uint m_NearbyRoadPoseCacheFrame;
+        private float m_LastControlRealtime = -1f;
 
         protected override void OnCreate()
         {
@@ -260,12 +262,14 @@ namespace BetaTestDrivingMod
             ClearTurnIntentCache();
             ClearNearbyRoadPoseCache();
             InvalidateVehicleCollisionCandidateCache();
+            m_LastControlRealtime = UnityEngine.Time.unscaledTime;
             ClearPossessionFocus(car, false);
             ClearNavigationBuffer(car);
             ParkLivePathfinding(car);
             PrimeTransformFrames(car, transform, moving);
 
-            DirectDriveRuntime.SetDriving(car, m_PossessedName, ToUnityVector(transform.m_Position), ToUnityQuaternion(transform.m_Rotation), math.length(moving.m_Velocity), false, false, "Direct control active");
+            Vector3 initialVelocity = ToUnityVector(moving.m_Velocity);
+            DirectDriveRuntime.SetDriving(car, m_PossessedName, ToUnityVector(transform.m_Position), ToUnityQuaternion(transform.m_Rotation), initialVelocity, moving.m_AngularVelocity.y, initialVelocity.magnitude * kMpsToMph, false, false, false, "Direct control active");
             Mod.log.Info($"Direct Drive possessed {car} '{m_PossessedName}' by {reason}. Physical movement is now direct-controlled.");
         }
 
@@ -298,6 +302,7 @@ namespace BetaTestDrivingMod
             m_PossessedName = "";
             m_SpeedMps = 0f;
             m_RoadGroundOffsetY = 0f;
+            m_LastControlRealtime = -1f;
             m_ReverseArmed = false;
             m_ReverseActive = false;
             DirectDriveRuntime.SetIdle(reason);
@@ -453,7 +458,7 @@ namespace BetaTestDrivingMod
             if (!math.isfinite(m_SpeedMps))
                 m_SpeedMps = currentForwardSpeed;
 
-            float dt = kSimulationStepSeconds;
+            float dt = ConsumeControlDeltaTime();
             Vector3 previousPosition = position;
             bool reverseCommand = UpdateReverseState(input.Throttle, input.Brake > 0.1f, input.BrakePressed, currentForwardSpeed);
             float targetSpeedMps = BuildTargetSpeed(input, reverseCommand);
@@ -558,7 +563,24 @@ namespace BetaTestDrivingMod
             ParkLivePathfinding(car);
             UpdateLatestTransformFrame(car, transform, moving, input, braking, reverseCommand);
 
-            DirectDriveRuntime.SetDriving(car, m_PossessedName, position, rotation, math.abs(m_SpeedMps), braking, m_ReverseArmed || m_ReverseActive, intentStatus);
+            DirectDriveRuntime.SetDriving(car, m_PossessedName, position, rotation, velocity, moving.m_AngularVelocity.y, Mathf.Abs(m_SpeedMps) * kMpsToMph, braking, reverseCommand, m_ReverseArmed || m_ReverseActive, intentStatus);
+        }
+
+        private float ConsumeControlDeltaTime()
+        {
+            float now = UnityEngine.Time.unscaledTime;
+            if (m_LastControlRealtime < 0f)
+            {
+                m_LastControlRealtime = now;
+                return kSimulationStepSeconds;
+            }
+
+            float elapsed = now - m_LastControlRealtime;
+            m_LastControlRealtime = now;
+            if (float.IsNaN(elapsed) || float.IsInfinity(elapsed) || elapsed <= 0.0001f)
+                return kSimulationStepSeconds;
+
+            return Mathf.Clamp(elapsed, kSimulationStepSeconds, kMaxControlStepSeconds);
         }
 
         private static Vector3 BuildActualVelocity(Vector3 previousPosition, Vector3 position, float dt, Vector3 fallbackVelocity)
@@ -1534,8 +1556,6 @@ namespace BetaTestDrivingMod
                 : new float2(-1f, -1f);
             DirectDriveRuntime.SetTrafficPresenceTarget(lane, changeLane, curvePosition.x, curvePosition.y, curveT, curveSign, rearSpan, forwardSpan);
 
-            RemoveTouchedTrafficPresenceLanes(car, lane, changeLane);
-
             bool laneChanged = lane != m_LastTrafficLane || changeLane != m_LastTrafficChangeLane;
             bool curveMoved = math.lengthsq(curvePosition - m_LastTrafficCurvePosition) > kTrafficPresenceCurveUpdateThresholdSq;
             bool changeCurveMoved = changeLane != Entity.Null &&
@@ -1545,6 +1565,9 @@ namespace BetaTestDrivingMod
                 cleanupFrame == 0U ||
                 m_LastTrafficPresenceNearbyCleanupFrame == 0U ||
                 cleanupFrame - m_LastTrafficPresenceNearbyCleanupFrame >= kTrafficPresenceNearbyCleanupFrames;
+            if (laneChanged || cleanupNearby)
+                RemoveTouchedTrafficPresenceLanes(car, lane, changeLane);
+
             if (cleanupNearby)
             {
                 RemoveNearbyTrafficPresenceLanes(car, lane, changeLane);

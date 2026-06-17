@@ -40,9 +40,9 @@ namespace BetaTestDrivingMod
         private const float kVehicleCollisionBroadphasePadding = 0.75f;
         private const float kVehicleCollisionFramePoseScanPadding = 32f;
         private const float kVehicleCollisionFramePoseMaxDistanceSq = 80f * 80f;
-        private const uint kVehicleCollisionCandidateRefreshFrames = 8U;
+        private const uint kVehicleCollisionCandidateRefreshFrames = 12U;
         private const float kVehicleCollisionCandidateCachePadding = 18f;
-        private const float kVehicleCollisionCandidateRefreshDistanceSq = 64f;
+        private const float kVehicleCollisionCandidateRefreshDistanceSq = 100f;
         private CityConfigurationSystem m_CityConfigurationSystem;
         private EntityQuery m_CollisionCarQuery;
         private Entity m_LastVehicleCollisionTarget = Entity.Null;

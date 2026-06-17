@@ -1,13 +1,25 @@
 <Publish>
   <ModId Value="145145" />
 	<DisplayName Value="Beta Test Driving Mod (Stable)" />
-	<ShortDescription Value="Direct-drive live-vehicle control with green AI presence, optional blue halo, and configurable keybinds." />
+	<ShortDescription Value="Direct-drive live-vehicle control with smoother low-FPS driving, traffic presence, and configurable keybinds." />
 	<LongDescription>
 # Beta Test Driving Mod (Stable)
 
 Beta Test Driving Mod (Stable) lets you possess and drive a real live vehicle already moving in Cities: Skylines II. This stable build keeps the tested Direct Drive system, the cleaner top-left COUI driving panel, safer crashguard paths around control/camera cleanup, the tested GTA-style attached chase camera, and unlocked manual tuning values.
 
+This update focuses on making driving feel smoother during short FPS drops without removing collision, traffic presence, chase camera, keybinds, or the existing stable animation path.
+
 This build keeps vehicle collision enabled with cached nearby collision candidates, but it no longer pushes other live traffic vehicles or rewrites their transform-frame buffers after impacts. Building collision and crash fire effects are not included in this build.
+
+## Fixed in 0.3.54
+
+- Smooths direct driving through short FPS drops by using capped real-time catch-up for the possessed car's control step.
+- Keeps the attached chase camera following the smoothed driving pose so hitches feel less noticeable from behind the car.
+- Preserves the stable vehicle animation path after testing a more aggressive render-frame smoother that could make vehicle animations repeat.
+- Reduces repeated traffic-presence cleanup work while keeping the green AI presence and stale-lane cleanup behavior.
+- Refreshes nearby vehicle collision candidates a little less aggressively to reduce per-frame query churn without disabling vehicle collision.
+- Skips unnecessary info-panel selection cleanup work when there is no active vanilla selection marker.
+- Adds new gallery screenshots showing the driving panel, chase camera, elevated roads, and keybind tuning view.
 
 ## Fixed in 0.3.53
 
@@ -32,6 +44,8 @@ Police chase note: the experimental chase controls are hidden and disabled in th
 ## Features
 
 - Possess/release a real live vehicle with V
+- Smoother low-FPS direct driving using capped real-time catch-up while preserving normal vehicle animations
+- Chase camera follows the smoothed driving pose so short hitches are less visible
 - Arrow-key driving controls, recommended if WASD moves your camera or screen
 - WASD also works as a fallback
 - Top-left driving panel for speed, input status, possession, and tuning sliders
@@ -47,6 +61,7 @@ Police chase note: the experimental chase controls are hidden and disabled in th
 - Optional blue halo lanes are limited to the same road owner, same carriageway group, and same road height
 - Primary-lane AI blocker only publishes when the controlled car is close to a valid same-height road lane
 - Vehicle collision stays enabled by default
+- Collision candidate refresh is less aggressive to reduce query churn during live driving
 - Single-writer lane presence avoids duplicate lane-buffer updates
 - Clickable AI traffic-presence debug overlay plus Numpad 9 quick toggle shows the primary lane marker traffic should react to
 - Green primary lane marker remains active around the controlled car
@@ -84,6 +99,7 @@ Police chase note: the experimental chase controls are hidden and disabled in th
 - Road intent assist queues AI left/right path intent from steering input without forcing the physical body to turn itself
 - Lane object presence sync so other traffic reacts to the possessed car's current lane position
 - Nearby road-lane search instead of expensive whole-city scanning
+- Traffic-presence cleanup runs less often while still clearing stale lanes
 - Brake-first reverse behavior: hold Down/S to stop, release and press again to reverse
 
 ## Notes
@@ -92,16 +108,19 @@ This is a beta test mod. It controls one possessed live road car and does not re
 	</LongDescription>
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<Screenshot Value="Properties/1.png" />
+	<Screenshot Value="Properties/2.png" />
+	<Screenshot Value="Properties/3.jpg" />
+	<Screenshot Value="Properties/4.jpg" />
 	<Tag Value="Code Mod" />
-	<ModVersion Value="0.3.53-stable" />
+	<ModVersion Value="0.3.54-stable" />
 	<GameVersion Value="1.5.*" />
 	<ChangeLog>
-0.3.53-stable update:
-- Parks the possessed car's vanilla route buffer while driving so the old blue route does not stretch far down the road.
-- Keeps the live vanilla navigation target just ahead of the controlled car instead of letting it chase the old path.
-- Clears the parked path state on release so vanilla traffic repaths from the car's current lane and position.
-- Keeps the green primary AI presence active and the blue extra lane halo off by default.
-- Keeps stale lane-buffer cleanup from the previous build.
+0.3.54-stable update:
+- Smooths direct driving through short FPS drops with capped real-time catch-up.
+- Keeps the chase camera following the smoothed driving pose so brief hitches feel less noticeable.
+- Preserves the stable vehicle animation path after testing and removing a render-frame smoother that could repeat animations.
+- Reduces repeated traffic-presence cleanup and collision-candidate refresh churn without disabling those features.
+- Adds new gallery screenshots showing the driving panel, chase camera, elevated-road driving, and keybind tuning view.
 	</ChangeLog>
 	<AccessLevel Value="Public" />
 </Publish>

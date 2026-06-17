@@ -1,6 +1,6 @@
 # Beta Test Driving Mod (Stable)
 
-`0.3.53-stable`
+`0.3.54-stable`
 
 Source / MIT license: https://github.com/northernst11-bot/BetaTestDrivingMod
 
@@ -17,6 +17,16 @@ This stable public build keeps the tested Direct Drive control system, keeps cra
 Police chase note: the experimental chase controls are hidden and disabled in this public build while they keep being tested locally.
 
 It does not spawn a fake player car. It takes over a real live vehicle already created by Cities: Skylines II, freezes the possessed car's vanilla physical path movement, then applies direct player movement after the normal car move step. Road intent assist now queues AI left/right turn intent and path connections, but it does not steer the physical body by itself.
+
+## Fixed in 0.3.54
+
+- Smooths direct driving through short FPS drops by using capped real-time catch-up for the possessed car's control step.
+- Keeps the attached chase camera following the smoothed driving pose so hitches feel less noticeable from behind the car.
+- Preserves the stable vehicle animation path after testing a more aggressive render-frame smoother that could make vehicle animations repeat.
+- Reduces repeated traffic-presence cleanup work while keeping the green AI presence and stale-lane cleanup behavior.
+- Refreshes nearby vehicle collision candidates a little less aggressively to reduce per-frame query churn without disabling vehicle collision.
+- Skips unnecessary info-panel selection cleanup work when there is no active vanilla selection marker.
+- Adds new gallery screenshots showing the driving panel, chase camera, elevated roads, and keybind tuning view.
 
 ## Fixed in 0.3.53
 
@@ -47,6 +57,9 @@ Open the tuning panel's Keybinds section to change the primary keys. Arrow keys 
 ## Current Build
 
 - Keeps vehicle collision enabled in the stable build.
+- Smooths low-FPS direct driving with capped real-time catch-up while keeping normal vehicle animation frames intact.
+- Keeps the chase camera attached to the smoothed driving pose so short hitches are less obvious while driving.
+- Reduces repeated traffic-presence and collision-candidate cleanup work without removing traffic presence or collision features.
 - Parks the possessed car's vanilla route buffer while you are driving so the old blue route does not stretch far down the road.
 - Keeps the live vanilla navigation target only just ahead of the controlled car instead of letting it chase the old path.
 - Clears the parked route state on release so vanilla traffic rebuilds a fresh path from the exact place you let go.

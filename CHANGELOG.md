@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Publishes `0.3.54-stable` with smoother direct driving through short FPS drops.
+- Uses capped real-time catch-up for the possessed car's control step so brief frame hitches are less noticeable while driving.
+- Keeps the chase camera following the smoothed driving pose so the camera feels steadier during FPS drops.
+- Preserves the stable vehicle animation path after testing and removing a more aggressive render-frame smoother that could make animations repeat.
+- Reduces repeated traffic-presence stale-lane cleanup while keeping green AI presence and cleanup behavior intact.
+- Refreshes nearby vehicle collision candidates less aggressively to reduce query churn without disabling vehicle collision.
+- Skips unnecessary info-panel selection cleanup work when no vanilla selection marker is active.
+- Adds new Paradox gallery screenshots for the driving panel, chase camera, elevated-road driving, and keybind tuning view.
 - Parks the possessed car's vanilla route buffer while driving so the old blue route line cannot stretch far down the road.
 - Keeps the live vanilla navigation target just ahead of the controlled car instead of letting it chase the old path.
 - Clears the parked path state on release so vanilla traffic repaths from the car's current release lane and position.
